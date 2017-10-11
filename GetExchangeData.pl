@@ -6,8 +6,9 @@
 =cut
 
 use strict;
-use LWP::Simple;
 use Encode;
+use Time::Local;
+use LWP::Simple;
 use IO::Handle;
 STDOUT->autoflush(1);
 
@@ -20,8 +21,9 @@ my $stream;
 open $FH, ">:raw:crlf", "record.txt" or die "$!";
 $FH->autoflush(1);
 
-my $A = "2017-09-01";
-my $B = "2017-09-30";
+my $from = time_to_date(time() - 24*3600*10);
+my $to   = time_to_date(time());               # today
+
 my $i = 1;
 my $curpg;
 my $prvpg = -1;
@@ -32,9 +34,9 @@ while (1)
     @all=();
     $stream = get(  
                 "http://srh.bankofchina.com/search/whpj/search.jsp?" .
-                "erectDate=${A}&nothing=${B}&pjname=1316".
+                "erectDate=${from}&nothing=${to}&pjname=1316".
                 "&page=$i"
-            );  #unicode            
+            );  #unicode
     
     $stream =~/var m_nCurrPage = (\d+)/;
     $curpg = $1;
@@ -49,8 +51,8 @@ while (1)
 }
 
 close $FH;
+printf("Done\n");
 
-<STDIN>;
 
 sub get_info 
 {
@@ -60,11 +62,11 @@ sub get_info
     my ($i, @arr);
 
     $i=0;
-    foreach (@all) 
+    for (@all) 
     {
         if (/th>(.*)<\/th>/) 
         {
-            $arr[$i++]=encode('gbk',$1);
+            $arr[$i++] = encode('gbk',$1);
         }
     }
 
@@ -95,3 +97,10 @@ sub get_info
     }
 }
 
+sub time_to_date
+{
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime( shift );
+    $mon += 1;
+    $year += 1900;
+    return sprintf "%d-%02d-%02d", $year,$mon,$day;
+}
