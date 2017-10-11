@@ -9,6 +9,8 @@ use strict;
 use Encode;
 use Time::Local;
 use LWP::Simple;
+use LWP::UserAgent;
+use Data::Dumper qw/Dumper/;
 use IO::Handle;
 STDOUT->autoflush(1);
 
@@ -17,37 +19,53 @@ our $di = -1;
 our @all;
 
 our $FH;
-my $stream;
 open $FH, ">:raw:crlf", "history.txt" or die "$!";
 $FH->autoflush(1);
 
-my $from = time_to_date(time() - 24*3600*10);
+our $ua = LWP::UserAgent->new();
+
+my $from = time_to_date(time() - 24*3600*5);
 my $to   = time_to_date(time());               # today
 
 my $i = 1;
 my $curpg;
 my $prvpg = -1;
+my $res;
 
 while (1)
 {
     print "Getting Page: $i\n";
     @all=();
-    $stream = get(  
-                "http://srh.bankofchina.com/search/whpj/search.jsp?" .
-                "erectDate=${from}&nothing=${to}&pjname=1316".
-                "&page=$i"
-            );  #unicode
-    
-    $stream =~/var m_nCurrPage = (\d+)/;
-    $curpg = $1;
-    last if ($curpg == $prvpg);    #页面并不会因为页码超出范围而404，超出后会指向有效的最后一页
-                                   #如果返回页码和上次一致，判定为结束
-    
-    @all=split('\n', $stream);
-    get_info();
+    # $res = $ua->get(
+    #         "http://srh.bankofchina.com/search/whpj/search.jsp?".
+    #         "erectDate=2017-10-01&nothing=2017-10-10&pjname=1316".
+    #         "&page=1"
+    #         );
 
-    $i++;
-    $prvpg = $curpg;
+    $res = $ua->post(
+            "http://srh.bankofchina.com/search/whpj/search.jsp",
+            [
+                erectDate => $from,
+                nothing   => $to,
+                pjname    => "1316",
+                page      => $i
+            ]
+        );
+
+    printf $FH Dumper $res;
+    last;
+
+    
+    # $stream =~/var m_nCurrPage = (\d+)/;
+    # $curpg = $1;
+    # last if ($curpg == $prvpg);    #页面并不会因为页码超出范围而404，超出后会指向有效的最后一页
+    #                                #如果返回页码和上次一致，判定为结束
+    
+    # @all=split('\n', $stream);
+    # get_info();
+
+    # $i++;
+    # $prvpg = $curpg;
 }
 
 close $FH;
