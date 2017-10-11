@@ -18,7 +18,7 @@ our @all;
 
 our $FH;
 my $stream;
-open $FH, ">:raw:crlf", "record.txt" or die "$!";
+open $FH, ">:raw:crlf", "history.txt" or die "$!";
 $FH->autoflush(1);
 
 my $from = time_to_date(time() - 24*3600*10);
@@ -86,7 +86,7 @@ sub get_info
         {
             next if ($all[$_]=~/^\s+$/); #如果是空行
             $all[$_]=~/td>(.*)<\/td>/i;
-            print $FH encode('gbk',$1), "\t";
+            print $FH encode('utf8', $1), "\t";
             $j++;
         } 
         if ($all[$_]=~/<\/tr>/)   #末尾重置
