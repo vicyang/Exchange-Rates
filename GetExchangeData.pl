@@ -5,11 +5,12 @@
     https://github.com/vicyang/Exchange-Rate
 =cut
 
-use strict;
 use Encode;
 use Time::Local;
 use File::Slurp;
 use LWP::UserAgent;
+use HTML::TableExtract;
+
 use IO::Handle;
 STDOUT->autoflush(1);
 
@@ -57,11 +58,12 @@ while (1)
     $curpg = $1;
     last if ($curpg == $prvpg);
 
-    @all = split('\n', $res->content());
-    get_info();
+    get_info( $res->content() );
 
     $i++;
     $prvpg = $curpg;
+
+    last;
 }
 
 close $FH;
@@ -70,44 +72,22 @@ printf("Done\n");
 
 sub get_info 
 {
-    our @all;
-    our $FH;
+    my $html_str = shift;
+    # count => 1 表示选择第二个表格。
+    my $obj = HTML::TableExtract->new( depth => 0, count => 1 );
+    $obj->parse($html_str);
 
-    my ($i, @arr);
+    my $table;
+    my $date;
+    grep { $table = $_ } $obj->tables;
 
-    $i = 0;
-    for (@all) 
+    for my $row ( $table->rows )
     {
-        if (/th>(.*)<\/th>/) 
-        {
-            $arr[$i++] = $1;
-        }
-    }
-
-    #获取美元信息
-    my $spec = "<td>美元<\/td>";
-    my $begin = 0;
-    my $j = 0;
-
-    for my $idx ( 0 .. $#all ) 
-    {
-        if ( $all[$idx] =~/$spec/i ) 
-        {
-            $begin = 1;
-            print $FH "\r\n";
-        }
-        if ( $begin == 1 and $j < $i )
-        {
-            next if ($all[$idx]=~/^\s+$/); #如果是空行
-            $all[$idx]=~/td>(.*)<\/td>/i;
-            print $FH $1, "\t";
-            $j++;
-        } 
-        if ( $all[$idx] =~/<\/tr>/ )   #末尾重置
-        {
-            $j = 0;
-            $begin = 0;
-        }
+        next if ( $row->[1] eq "" or (not $row->[2] =~/\d/) );
+        print encode('gbk', decode('utf8', shift @$row )), "\t";
+        $date = pop @$row; 
+        grep { printf "%.2f\t", $_ } @$row;
+        print "$date\n";
     }
 }
 
