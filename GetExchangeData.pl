@@ -31,15 +31,15 @@ our $ua = LWP::UserAgent->new(
 my $from = time_to_date(time() - 24*3600*1);
 my $to   = time_to_date(time());               # today
 
-my $i = 1;
-my $curpg;
-my $prvpg = -1;
+my $pageid = 1;
+my $curr;
+my $prev = -1;
 my $res;
 my $s;
 
 while (1)
 {
-    print "Getting Page: $i\n";
+    print "Getting Page: $pageid\n";
     @all = ();
 
     $res = $ua->post(
@@ -48,22 +48,18 @@ while (1)
                 erectDate => $from,
                 nothing   => $to,
                 pjname    => "1316",
-                page      => $i
+                page      => $pageid
             ]
         );
 
-    #页面并不会因为页码超出范围而无效，超出后会指向有效的最后一页
-    #如果返回页码和上次一致，判定为结束
+    #页码超出后会指向有效的最后一页，若页码和上次一致，判定为结束
     $res->content() =~/var m_nCurrPage = (\d+)/;
-    $curpg = $1;
-    last if ($curpg == $prvpg);
+    $curr = $1;
+    last if ($curr == $prev);
 
     get_info( $res->content() );
-
-    $i++;
-    $prvpg = $curpg;
-
-    last;
+    $prev = $curr;
+    $pageid++;
 }
 
 close $FH;
