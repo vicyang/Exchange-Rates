@@ -8,11 +8,13 @@
 use Encode;
 use Time::Local;
 use File::Slurp;
+use Data::Dumper;
 use LWP::UserAgent;
 use HTML::TableExtract;
 
 use IO::Handle;
 STDOUT->autoflush(1);
+$Data::Dumper::Indent = 1;
 
 our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
 our $FH;
@@ -21,6 +23,7 @@ open $FH, ">:raw", "history.txt" or die "$!";
 our $ua = LWP::UserAgent->new( 
             timeout => 5, keep_alive => 1, agent => 'Mozilla/5.0',
           );
+our $hash;
 
 my $from = time_to_date(time() - 24*3600*1);
 my $to   = time_to_date(time());               # today
@@ -39,16 +42,18 @@ while (1)
 
     get_info( $content );
     $pageid++;
+
+    write_file( "hash.txt", {binmode=>":raw:crlf"}, Dumper $hash );
 }
 
 close $FH;
 printf("Done\n");
 
-
 sub get_info 
 {
+    our $hash;
     my $html_str = shift;
-    
+
     # count => 1 表示选择第二个表格。
     my $obj = HTML::TableExtract->new( depth => 0, count => 1 );
     $obj->parse($html_str);
@@ -56,11 +61,20 @@ sub get_info
     my $table;
     grep { $table = $_ } $obj->tables;
 
+    my $timestamp;
     for my $row ( $table->rows )
     {
-        next if ( $row->[1] eq '' );  #表格最末一行为空
-        grep { print encode('gbk', decode('utf8', $_)), "\t" } @$row;
-        print "\n";
+=info
+    去掉第一行抬头
+    去掉第一列货币类型
+    表格最后一行为空
+=cut
+        shift @$row;
+        next if ( $row->[1] eq '' );
+        next if ( not $row->[1] =~/\d/ );
+
+        $timestamp = pop @$row;
+        $hash->{ $timestamp } = [ @$row ];
     }
 }
 
