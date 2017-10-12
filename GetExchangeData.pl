@@ -8,8 +8,8 @@
 use strict;
 use Encode;
 use Time::Local;
+use File::Slurp;
 use LWP::UserAgent;
-use Data::Dumper qw/Dumper/;
 use IO::Handle;
 STDOUT->autoflush(1);
 
@@ -34,11 +34,12 @@ my $i = 1;
 my $curpg;
 my $prvpg = -1;
 my $res;
+my $s;
 
 while (1)
 {
     print "Getting Page: $i\n";
-    @all=();
+    @all = ();
 
     $res = $ua->post(
             "http://srh.bankofchina.com/search/whpj/search.jsp",
@@ -50,11 +51,12 @@ while (1)
             ]
         );
 
+    #页面并不会因为页码超出范围而无效，超出后会指向有效的最后一页
+    #如果返回页码和上次一致，判定为结束
     $res->content() =~/var m_nCurrPage = (\d+)/;
     $curpg = $1;
-    last if ($curpg == $prvpg);    #页面并不会因为页码超出范围而404，超出后会指向有效的最后一页
-                                   #如果返回页码和上次一致，判定为结束
-    
+    last if ($curpg == $prvpg);
+
     @all = split('\n', $res->content());
     get_info();
 
@@ -116,3 +118,4 @@ sub time_to_date
     $year += 1900;
     return sprintf "%d-%02d-%02d", $year,$mon,$day;
 }
+
