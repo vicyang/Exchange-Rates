@@ -21,10 +21,10 @@ our $FH;
 open $FH, ">:raw", "history.txt" or die "$!";
 $FH->autoflush(1);
 
-our $ua = LWP::UserAgent->new(
-            keep_alive=>1,
-            timeout=>5,
-            agent => 'Mozilla/5.0',
+our $ua = LWP::UserAgent->new( 
+                timeout => 5,
+                keep_alive => 1, 
+                agent => 'Mozilla/5.0',
           );
 
 my $from = time_to_date(time() - 24*3600*1);
