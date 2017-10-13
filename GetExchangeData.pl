@@ -8,6 +8,7 @@
 use Encode;
 use Time::Local;
 use File::Slurp;
+use Data::Dump qw/dump/;
 use Data::Dumper;
 use LWP::UserAgent;
 use HTML::TableExtract;
@@ -25,7 +26,7 @@ our $ua = LWP::UserAgent->new(
           );
 our $hash;
 
-my $from = time_to_date(time() - 24*3600*1);
+my $from = time_to_date(time() - 24*3600*5);
 my $to   = time_to_date(time());               # today
 
 my $pageid = 1;
@@ -42,10 +43,9 @@ while (1)
 
     get_info( $content );
     $pageid++;
-
-    write_file( "hash.txt", {binmode=>":raw:crlf"}, Dumper $hash );
 }
 
+write_file( "hash.perldb", { binmode => ":raw" }, dump($hash) );
 close $FH;
 printf("Done\n");
 
