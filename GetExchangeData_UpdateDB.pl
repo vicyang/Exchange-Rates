@@ -29,9 +29,9 @@ our $ua = LWP::UserAgent->new(
 our %hash :shared;
 our @task :shared;
 
-my $file = "hash.perldb";
-my $from = time_to_date(time() - 24*3600*5);
-my $to   = time_to_date(time());
+my $file = "exchange_rates.perldb";
+my $from = "2016-05-02";
+my $to   = "2016-05-02";
 
 my $pageid = 1;
 my @ths;
