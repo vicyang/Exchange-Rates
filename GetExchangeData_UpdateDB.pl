@@ -19,30 +19,34 @@ use HTML::TableExtract;
 use IO::Handle;
 STDOUT->autoflush(1);
 $Data::Dumper::Indent = 1;
-$Data::Dumper::Sortkeys = 1;
+#$Data::Dumper::Sortkeys = 1;
 
 our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
 our $ua = LWP::UserAgent->new( 
             timeout => 5, keep_alive => 1, agent => 'Mozilla/5.0',
           );
 
-our %hash :shared;
+our $hash :shared;
 our @task :shared;
+our $date :shared;
 
 my $file = "exchange_rates.perldb";
 my $from = "2016-05-02";
 my $to   = "2016-05-10";
+my $date = $from;
 
-my $date_iter = $from;
-print  date_plus( $date_iter, 1 );
+$hash = shared_clone(eval read_file( $file, binmode => ':raw' ));
 
-$hash{$date} = shared_clone( [] );
+print Dumper $hash;
+
+$hash = shared_clone( {} );
+$hash->{$date} = shared_clone( [] );
 
 exit;
 
 my $pageid = 1;
 my @ths;
-grep { push @ths, threads->create( \&func, $from, $to, $_ ) } ( 0 .. 5 );
+grep { push @ths, threads->create( \&func, $_ ) } ( 0 .. 5 );
 
 #循环插入任务，等待线程结束
 while ( threads->list( threads::running ) ) 
@@ -53,12 +57,12 @@ while ( threads->list( threads::running ) )
 #分离线程
 grep { $_->detach() } @ths;
 
-write_file( $file, { binmode => ":raw" }, Dumper \%hash );
+write_file( $file, { binmode => ":raw" }, Dumper $hash );
 printf("Done\n");
 
 sub func
 {
-    my ($from, $to, $idx) = @_;
+    my ($idx) = @_;
     my $content;
     my $timestamp;
     
@@ -66,11 +70,11 @@ sub func
     {
         if ( $task[$idx] == 0 ) { sleep 0.1; next; }
 
-        $content = get_page( $from, $to, $task[$idx] );
+        $content = get_page( $date, $date, $task[$idx] );
         $content =~/var m_nCurrPage = (\d+)/;
         last if ( $1 != $task[$idx] );
 
-        get_info( $content );
+        get_exchange_data( $content );
         printf "[%d] mission: %4d time: %s\n", 
                 $idx, $task[$idx], $timestamp;
         #归零
@@ -78,9 +82,9 @@ sub func
     }
 }
 
-sub get_info
+sub get_exchange_data
 {
-    my ( $html_str, $ref ) = @_;
+    my ( $html_str ) = @_;
 
     # count => 1 表示选择第二个表格。
     my $obj = HTML::TableExtract->new( depth => 0, count => 1 );
@@ -101,8 +105,9 @@ sub get_info
         next if ( $row->[1] eq '' );
         next if ( not $row->[1] =~/\d/ );
 
-        unshift @$row, pop @$row;
-        push @$ref, join("\t", @$row);
+        $timestamp = pop @$row;
+        #push @{$hash->{$date}}, shared_clone( { $timestamp , [@$row]} );
+        push @{$hash->{$date}}, shared_clone({$timestamp, join("\t", @$row)});
     }
 }
 
