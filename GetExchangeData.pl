@@ -6,10 +6,10 @@
 =cut
 
 use Encode;
+use threads;
 use Time::Local;
 use File::Slurp;
 use Data::Dump qw/dump/;
-use Data::Dumper;
 use LWP::UserAgent;
 use HTML::TableExtract;
 
