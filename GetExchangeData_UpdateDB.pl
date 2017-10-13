@@ -31,7 +31,14 @@ our @task :shared;
 
 my $file = "exchange_rates.perldb";
 my $from = "2016-05-02";
-my $to   = "2016-05-02";
+my $to   = "2016-05-10";
+
+my $date_iter = $from;
+print  date_plus( $date_iter, 1 );
+
+$hash{$date} = shared_clone( [] );
+
+exit;
 
 my $pageid = 1;
 my @ths;
@@ -63,7 +70,7 @@ sub func
         $content =~/var m_nCurrPage = (\d+)/;
         last if ( $1 != $task[$idx] );
 
-        $timestamp = get_info( $content );
+        get_info( $content );
         printf "[%d] mission: %4d time: %s\n", 
                 $idx, $task[$idx], $timestamp;
         #归零
@@ -71,10 +78,9 @@ sub func
     }
 }
 
-sub get_info 
+sub get_info
 {
-    our %hash;
-    my $html_str = shift;
+    my ( $html_str, $ref ) = @_;
 
     # count => 1 表示选择第二个表格。
     my $obj = HTML::TableExtract->new( depth => 0, count => 1 );
@@ -95,11 +101,9 @@ sub get_info
         next if ( $row->[1] eq '' );
         next if ( not $row->[1] =~/\d/ );
 
-        $timestamp = pop @$row;
-        $hash{ $timestamp } = shared_clone([ @$row ]);
+        unshift @$row, pop @$row;
+        push @$ref, join("\t", @$row);
     }
-
-    return $timestamp;
 }
 
 sub get_page
@@ -117,6 +121,21 @@ sub get_page
         ]
     );
     return $res->content();
+}
+
+#============================================================
+#                       日期处理函数
+#============================================================
+
+sub date_plus
+{
+    my ($date, $days) = @_;
+    #转为time格式（从1970年1月1日开始计算的秒数）
+    my ($year, $mon, $day) = map { $_=~s/^0//; $_ } split("-", $date);
+    my $t = timelocal(0, 0, 0, $day, $mon-1, $year)
+            + $days * 24 * 3600;
+
+    return time_to_date( $t );
 }
 
 sub time_to_date
