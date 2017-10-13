@@ -7,47 +7,72 @@
 
 use Encode;
 use threads;
+use threads::shared;
+use Time::HiRes qw/sleep/;
 use Time::Local;
 use File::Slurp;
 use Data::Dump qw/dump/;
+use Data::Dumper;
 use LWP::UserAgent;
 use HTML::TableExtract;
 
 use IO::Handle;
 STDOUT->autoflush(1);
 $Data::Dumper::Indent = 1;
+$Data::Dumper::Sortkeys = 1;
 
 our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
 our $ua = LWP::UserAgent->new( 
             timeout => 5, keep_alive => 1, agent => 'Mozilla/5.0',
           );
-our $hash;
+
+our %hash :shared;
+our @task :shared;
+$hash = shared_clone( {} );
 
 my $from = time_to_date(time() - 24*3600*5);
-my $to   = time_to_date(time());               # today
+my $to   = time_to_date(time());
 
 my $pageid = 1;
-my $content;
+my @ths;
+grep { push @ths, threads->create( \&func, $from, $to, $_ ) } ( 0 .. 5 );
 
-while (1)
+#循环插入任务，等待线程结束
+while ( threads->list( threads::running ) ) 
 {
-    print "Getting Page: $pageid\n";
-    $content = get_page( $from, $to, $pageid );
-
-    #页码超出后会指向有效的最后一页而非404，实际页码不同步时结束循环
-    $content =~/var m_nCurrPage = (\d+)/;
-    last if ( $1 != $pageid );
-
-    get_info( $content );
-    $pageid++;
+    grep { $task[$_] = $pageid++ if ( $task[$_] == 0 ); } (0..5);
 }
 
-write_file( "hash.perldb", { binmode => ":raw" }, dump($hash) );
+#分离线程
+grep { $_->detach() } @ths;
+
+write_file( "hash.perldb", { binmode => ":raw" }, Dumper \%hash );
 printf("Done\n");
+
+sub func
+{
+    my ($from, $to, $idx) = @_;
+    my $content;
+    
+    while (1)
+    {
+        if ( $task[$idx] == 0 ) { sleep 0.1; next; }
+
+        $content = get_page( $from, $to, $task[$idx] );
+        $content =~/var m_nCurrPage = (\d+)/;
+        last if ( $1 != $task[$idx] );
+
+        printf "[%d] mission: %d\n", $idx, $task[$idx];
+        get_info( $content );
+
+        #归零
+        $task[$idx] = 0;
+    }
+}
 
 sub get_info 
 {
-    our $hash;
+    our %hash;
     my $html_str = shift;
 
     # count => 1 表示选择第二个表格。
@@ -61,16 +86,16 @@ sub get_info
     for my $row ( $table->rows )
     {
 =info
-    去掉第一行抬头
-    去掉第一列货币类型
-    表格最后一行为空
+        去掉第一行抬头
+        去掉第一列货币类型
+        表格最后一行为空
 =cut
         shift @$row;
         next if ( $row->[1] eq '' );
         next if ( not $row->[1] =~/\d/ );
 
         $timestamp = pop @$row;
-        $hash->{ $timestamp } = [ @$row ];
+        $hash{ $timestamp } = shared_clone([ @$row ]);
     }
 }
 
