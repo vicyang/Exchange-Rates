@@ -54,6 +54,7 @@ sub func
 {
     my ($from, $to, $idx) = @_;
     my $content;
+    my $timestamp;
     
     while (1)
     {
@@ -63,9 +64,9 @@ sub func
         $content =~/var m_nCurrPage = (\d+)/;
         last if ( $1 != $task[$idx] );
 
-        printf "[%d] mission: %d\n", $idx, $task[$idx];
-        get_info( $content );
-
+        $timestamp = get_info( $content );
+        printf "[%d] mission: %4d time: %s\n", 
+                $idx, $task[$idx], $timestamp;
         #归零
         $task[$idx] = 0;
     }
@@ -98,6 +99,8 @@ sub get_info
         $timestamp = pop @$row;
         $hash{ $timestamp } = shared_clone([ @$row ]);
     }
+
+    return $timestamp;
 }
 
 sub get_page
