@@ -30,6 +30,7 @@ our %hash :shared;
 our @task :shared;
 $hash = shared_clone( {} );
 
+my $file = "hash.perldb";
 my $from = time_to_date(time() - 24*3600*5);
 my $to   = time_to_date(time());
 
@@ -46,7 +47,7 @@ while ( threads->list( threads::running ) )
 #分离线程
 grep { $_->detach() } @ths;
 
-write_file( "hash.perldb", { binmode => ":raw" }, Dumper \%hash );
+write_file( $file, { binmode => ":raw" }, Dumper \%hash );
 printf("Done\n");
 
 sub func
