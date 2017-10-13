@@ -18,9 +18,6 @@ STDOUT->autoflush(1);
 $Data::Dumper::Indent = 1;
 
 our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
-our $FH;
-open $FH, ">:raw", "history.txt" or die "$!";
-
 our $ua = LWP::UserAgent->new( 
             timeout => 5, keep_alive => 1, agent => 'Mozilla/5.0',
           );
@@ -46,7 +43,6 @@ while (1)
 }
 
 write_file( "hash.perldb", { binmode => ":raw" }, dump($hash) );
-close $FH;
 printf("Done\n");
 
 sub get_info 
