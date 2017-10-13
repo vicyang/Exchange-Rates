@@ -33,25 +33,31 @@ our $date :shared;
 my $file = "exchange_rates.perldb";
 my $from = "2016-05-02";
 my $to   = "2016-05-10";
-my $date = $from;
 
-$hash = shared_clone(eval read_file( $file, binmode => ':raw' ));
+if ( -e $file ) 
+{
+    $hash = shared_clone(eval read_file( $file, binmode => ':raw' ));
+}
+else { $hash = shared_clone( {} ) }
 
-print Dumper $hash;
-
-$hash = shared_clone( {} );
-$hash->{$date} = shared_clone( [] );
-
-exit;
-
-my $pageid = 1;
 my @ths;
 grep { push @ths, threads->create( \&func, $_ ) } ( 0 .. 5 );
 
-#循环插入任务，等待线程结束
-while ( threads->list( threads::running ) ) 
+my $pageid;
+$date = $from;
+while (1)
 {
-    grep { $task[$_] = $pageid++ if ( $task[$_] == 0 ); } (0..5);
+    $date = date_plus($date, 1) if ( exists $hash->{$date} );
+    print $date;
+    exit;
+
+    $pageid = 1;
+    #循环插入任务，等待线程结束
+    while ( threads->list( threads::running ) ) 
+    {
+        grep { $task[$_] = $pageid++ if ( $task[$_] == 0 ); } (0..5);
+    }
+
 }
 
 #分离线程
