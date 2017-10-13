@@ -13,6 +13,7 @@ use Time::Local;
 use File::Slurp;
 use Data::Dump qw/dump/;
 use Data::Dumper;
+use List::Util qw/sum/;
 use LWP::UserAgent;
 use HTML::TableExtract;
 
@@ -32,32 +33,43 @@ our $date :shared;
 
 my $file = "exchange_rates.perldb";
 my $from = "2016-05-02";
-my $to   = "2016-05-10";
+my $to   = "2016-12-10";
 
 if ( -e $file ) 
 {
     $hash = shared_clone(eval read_file( $file, binmode => ':raw' ));
 }
-else { $hash = shared_clone( {} ) }
+else { $hash = shared_clone( {} ) } #初始化
 
+
+#创建线程
 my @ths;
 grep { push @ths, threads->create( \&func, $_ ) } ( 0 .. 5 );
 
 my $pageid;
 $date = $from;
-while (1)
-{
-    $date = date_plus($date, 1) if ( exists $hash->{$date} );
-    print $date;
-    exit;
 
+while ( $date le $to )
+{
+    printf "%s\n", $date;
+    if ( exists $hash->{$date} ) 
+    {
+        $date = date_plus($date, 1);
+        next;
+    }
+
+    $hash->{$date} = shared_clone( [] );
     $pageid = 1;
+
+    @task = (0) x 6;
     #循环插入任务，等待线程结束
-    while ( threads->list( threads::running ) ) 
+    do
     {
         grep { $task[$_] = $pageid++ if ( $task[$_] == 0 ); } (0..5);
     }
+    until ( sum(@task) == -6 );
 
+    $date = date_plus($date, 1);
 }
 
 #分离线程
@@ -74,14 +86,15 @@ sub func
     
     while (1)
     {
-        if ( $task[$idx] == 0 ) { sleep 0.1; next; }
+        #0 表示等待指示，-1表示等待下一回合
+        if ( $task[$idx] <= 0 ) { sleep 0.1; next; }
 
         $content = get_page( $date, $date, $task[$idx] );
         $content =~/var m_nCurrPage = (\d+)/;
-        last if ( $1 != $task[$idx] );
+        if ( $1 != $task[$idx] ) { $task[$idx] = -1; next; }
 
-        get_exchange_data( $content );
-        printf "[%d] mission: %4d time: %s\n", 
+        $timestamp = get_exchange_data( $content );
+        printf "[%d] mission: %2d time: %s\n",
                 $idx, $task[$idx], $timestamp;
         #归零
         $task[$idx] = 0;
@@ -115,6 +128,8 @@ sub get_exchange_data
         #push @{$hash->{$date}}, shared_clone( { $timestamp , [@$row]} );
         push @{$hash->{$date}}, shared_clone({$timestamp, join("\t", @$row)});
     }
+
+    return $timestamp;
 }
 
 sub get_page
