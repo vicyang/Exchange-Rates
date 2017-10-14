@@ -36,10 +36,10 @@
   }
   ```
 
-  * 内存问题
-    8MB 的数据，读入Perl后内存占用200MB。
-    线程创建后，内存占用500MB
-    my $dbstr = Dumper($hash); 内存占用 900MB
+  * 内存问题  
+    8MB 的数据，读入Perl后内存占用200MB。  
+    线程创建后，内存占用500MB  
+    my $dbstr = Dumper($hash); 内存占用 900MB  
 
 * 参考资料  
   [Parsing HTML with Perl](http://radar.oreilly.com/2014/02/parsing-html-with-perl-2.html)  
