@@ -32,8 +32,8 @@ our @task :shared;
 our $date :shared;
 
 my $file = "exchange_rates.perldb";
-my $from = "2015-01-01";
-my $to   = "2017-01-10";
+my $from = "2017-01-01";
+my $to   = "2017-01-31";
 
 if ( -e $file ) 
 {
@@ -46,6 +46,7 @@ else { $hash = shared_clone( {} ) }; '初始化';
 my @ths;
 grep { push @ths, threads->create( \&func, $_ ) } ( 0 .. 5 );
 
+my $time_a = Time::HiRes::time();
 my $pageid;
 $date = $from;
 
@@ -83,7 +84,7 @@ $dbstr =~s/(\=\> \{)/$1\r\n  /g;
 $dbstr =~s/(\= \{)/$1\r\n/g;
 
 write_file( $file, { binmode => ":raw" }, $dbstr );
-printf("Done\n");
+printf("Done\nTime used: %.3f\n", Time::HiRes::time() - $time_a );
 
 sub func
 {
