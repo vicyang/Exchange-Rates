@@ -19,7 +19,7 @@ use HTML::TableExtract;
 
 use IO::Handle;
 STDOUT->autoflush(1);
-$Data::Dumper::Indent = 1;
+$Data::Dumper::Indent = 0;
 #$Data::Dumper::Sortkeys = 1;
 
 our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
@@ -33,16 +33,16 @@ our $date :shared;
 
 my $file = "exchange_rates.perldb";
 my $from = "2016-05-02";
-my $to   = "2016-12-10";
+my $to   = "2017-01-01";
 
 if ( -e $file ) 
 {
+    print "Loading ... ";
     $hash = shared_clone(eval read_file( $file, binmode => ':raw' ));
+    print "Done\n";
 }
-else { $hash = shared_clone( {} ) } #初始化
+else { $hash = shared_clone( {} ) }; '初始化';
 
-
-#创建线程
 my @ths;
 grep { push @ths, threads->create( \&func, $_ ) } ( 0 .. 5 );
 
@@ -60,22 +60,27 @@ while ( $date le $to )
 
     $hash->{$date} = shared_clone( [] );
     $pageid = 1;
-
     @task = (0) x 6;
-    #循环插入任务，等待线程结束
-    do
+    
+    q/循环插入任务，当指定日期下的所有页面获取完毕，结束循环/;
+    while ( sum(@task) != -6 )
     {
         grep { $task[$_] = $pageid++ if ( $task[$_] == 0 ); } (0..5);
     }
-    until ( sum(@task) == -6 );
 
+    q/日期迭代/;
     $date = date_plus($date, 1);
 }
 
-#分离线程
+q/线程分离/;
 grep { $_->detach() } @ths;
 
-write_file( $file, { binmode => ":raw" }, Dumper $hash );
+printf("Dumping ... ");
+my $dbstr = Dumper($hash);
+$dbstr =~s/\[\{/[\r\n  {/g;
+$dbstr =~s/(\]\},)/$1\r\n  /g;
+$dbstr =~s/(\}\],)/$1\r\n/g;
+write_file( $file, { binmode => ":raw" }, $dbstr );
 printf("Done\n");
 
 sub func
@@ -86,47 +91,44 @@ sub func
     
     while (1)
     {
-        #0 表示等待指示，-1表示等待下一回合
+        q/ 0: 等待指示;  -1: 等待下一回合 /;
         if ( $task[$idx] <= 0 ) { sleep 0.1; next; }
 
         $content = get_page( $date, $date, $task[$idx] );
         $content =~/var m_nCurrPage = (\d+)/;
+
+        q/如果提取日期和任务日期不一致，标记为-1/;
         if ( $1 != $task[$idx] ) { $task[$idx] = -1; next; }
 
         $timestamp = get_exchange_data( $content );
         printf "[%d] mission: %2d time: %s\n",
                 $idx, $task[$idx], $timestamp;
-        #归零
-        $task[$idx] = 0;
+        
+        $task[$idx] = 0;    q/任务清零/;
     }
 }
 
 sub get_exchange_data
 {
     my ( $html_str ) = @_;
+    our $data;
+    my ($obj, $table, $timestamp);
 
-    # count => 1 表示选择第二个表格。
-    my $obj = HTML::TableExtract->new( depth => 0, count => 1 );
+    q/count => 1 表示选择第二个表格/;
+    $obj = HTML::TableExtract->new( depth => 0, count => 1 );
     $obj->parse($html_str);
 
-    my $table;
     grep { $table = $_ } $obj->tables;
 
-    my $timestamp;
-    for my $row ( $table->rows )
+    for my $ele ( $table->rows )
     {
-=info
-        去掉第一行抬头
-        去掉第一列货币类型
-        表格最后一行为空
-=cut
-        shift @$row;
-        next if ( $row->[1] eq '' );
-        next if ( not $row->[1] =~/\d/ );
+        shift @$ele;                       '去掉第一行抬头';
+        next if ( $ele->[1] eq '' );       '去掉第一列货币类型';
+        next if ( not $ele->[1] =~/\d/ );  '表格最后一行为空';
 
-        $timestamp = pop @$row;
-        #push @{$hash->{$date}}, shared_clone( { $timestamp , [@$row]} );
-        push @{$hash->{$date}}, shared_clone({$timestamp, join("\t", @$row)});
+        $timestamp = pop @$ele;
+        push @{$hash->{$date}}, shared_clone( { $timestamp , [@$ele]} );
+        #push @{$hash->{$date}}, shared_clone({$timestamp, join("\t", @$row)});
     }
 
     return $timestamp;
@@ -149,18 +151,13 @@ sub get_page
     return $res->content();
 }
 
-#============================================================
-#                       日期处理函数
-#============================================================
-
 sub date_plus
 {
     my ($date, $days) = @_;
-    #转为time格式（从1970年1月1日开始计算的秒数）
+    q/转为time格式（从1970年1月1日开始计算的秒数）/;
     my ($year, $mon, $day) = map { $_=~s/^0//; $_ } split("-", $date);
     my $t = timelocal(0, 0, 0, $day, $mon-1, $year)
             + $days * 24 * 3600;
-
     return time_to_date( $t );
 }
 
