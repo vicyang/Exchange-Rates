@@ -32,8 +32,8 @@ our @task :shared;
 our $date :shared;
 
 my $file = "exchange_rates.perldb";
-my $from = "2016-05-02";
-my $to   = "2017-01-01";
+my $from = "2015-02-07";
+my $to   = "2017-10-10";
 
 if ( -e $file ) 
 {
