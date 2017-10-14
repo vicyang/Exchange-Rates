@@ -95,12 +95,13 @@ sub func
         if ( $task[$idx] <= 0 ) { sleep 0.1; next; }
 
         $content = get_page( $date, $date, $task[$idx] );
-        $content =~/var m_nCurrPage = (\d+)/;
+        unless ($content =~/var m_nCurrPage = (\d+)/) { print "repeat\n"; next; }
 
         #如果提取日期和任务日期不一致，标记为-1
         if ( $1 != $task[$idx] ) { $task[$idx] = -1; next; }
 
         $timestamp = get_exchange_data( $content );
+        unless ( defined $timestamp ) { $task[$idx] = -1; next; }
         printf "[%d] mission: %2d time: %s\n",
                 $idx, $task[$idx], $timestamp;
         
