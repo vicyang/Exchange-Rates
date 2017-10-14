@@ -6,6 +6,7 @@
 =cut
 
 use Encode;
+use Time::HiRes;
 use Time::Local;
 use File::Slurp;
 use Data::Dump qw/dump/;
@@ -23,9 +24,12 @@ our $ua = LWP::UserAgent->new(
           );
 our $hash;
 
-my $from = time_to_date(time() - 24*3600*5);
-my $to   = time_to_date(time());               # today
+# my $from = time_to_date(time() - 24*3600*31);
+# my $to   = time_to_date(time());               # today
+my $from = "2017-01-01";
+my $to   = "2017-01-31";
 
+my $time_a = Time::HiRes::time();
 my $pageid = 1;
 my $content;
 
@@ -43,7 +47,7 @@ while (1)
 }
 
 write_file( "hash.perldb", { binmode => ":raw" }, dump($hash) );
-printf("Done\n");
+printf("Done\nTime used: %.3f\n", Time::HiRes::time() - $time_a );
 
 sub get_info 
 {
