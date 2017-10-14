@@ -33,7 +33,7 @@ our $date :shared;
 
 my $file = "exchange_rates.perldb";
 my $from = "2015-01-01";
-my $to   = "2017-10-10";
+my $to   = "2017-01-10";
 
 if ( -e $file ) 
 {
