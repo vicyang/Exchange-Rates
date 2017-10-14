@@ -7,7 +7,6 @@
 
 use Encode;
 use File::Slurp;
-use Data::Dump qw/dump/;
 use Data::Dumper;
 
 use IO::Handle;
@@ -18,9 +17,11 @@ my $hash;
 my $file = "exchange_rates.perldb";
 if ( not -e $file ) { exit; }
 
+
 print "Loading ... ";
 $hash = eval read_file( $file, binmode => ':raw' );
 print "Done\n";
+
 
 =info
 实测 8M文件 加载后内存 140M 左右
@@ -28,17 +29,22 @@ print "Done\n";
 =cut
 
 #%$hash = ();
+grep { print "."; sleep 1 } (1..10);
+print "\nFree ... ";
 
-for my $k ( keys %$hash )
-{
-    print $k, "\n";
-    %{$hash->{$k}} = ();
-    # for my $e ( keys %{$hash->{$k}} )
-    # {
-    #     print $e, "\n";
-    #     @{$k->{$e}} = ();
-    # }
-}
+# for my $k ( keys %$hash )
+# {
+#     #print $k, "\n";
+#     for my $e ( @{$hash->{$k}} )
+#     {
+#         my ($kk) = keys %$e;
+#         @{$e->{$kk}} = ();
+#         %$e = ();
+#     }
+#     @{$hash->{$k}} = ();
+# }
 
-print "Free\n";
-sleep 5;
+%$hash = ();
+
+print "Done\n";
+grep { print "."; sleep 1 }(1..10);
