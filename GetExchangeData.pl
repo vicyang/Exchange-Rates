@@ -37,7 +37,7 @@ my ($from, $to, $file) = @ARGV;
 # my $file = "2015.perldb";
 # my $from = "2015-01-01";
 # my $to   = "2016-01-01";
-
+my $time_a = Time::HiRes::time();
 my $pageid = 1;
 my @ths;
 grep { push @ths, threads->create( \&func, $from, $to, $_ ) } ( 0 .. 5 );
@@ -60,7 +60,7 @@ $dbstr =~s/(\=\> \{)/$1\r\n  /g;
 $dbstr =~s/(\= \{)/$1\r\n/g;
 
 write_file( $file, { binmode => ":raw" }, $dbstr );
-printf("Done\n");
+printf("Done\nTime used: %.3f\n", Time::HiRes::time() - $time_a );
 
 sub func
 {
