@@ -96,7 +96,7 @@ sub func
     while (1)
     {
         # 0: 等待指示;  -1: 等待下一回合 
-        if ( $task[$idx] <= 0 ) { sleep 0.1; next; }
+        if ( $task[$idx] <= 0 ) { sleep 0.01; next; }
 
         $content = get_page( $date, $date, $task[$idx] );
         unless ($content =~/var m_nCurrPage = (\d+)/) { print "repeat\n"; next; }
