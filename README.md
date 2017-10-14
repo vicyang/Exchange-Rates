@@ -41,6 +41,9 @@
     线程创建后，内存占用500MB  
     my $dbstr = Dumper($hash); 内存占用 900MB  
 
+  * 效率
+    获取2017-01-01至2017-01-31的区间数据，耗时25秒左右
+
 * 参考资料  
   [Parsing HTML with Perl](http://radar.oreilly.com/2014/02/parsing-html-with-perl-2.html)  
   [HTML::TableExtract](https://metacpan.org/pod/HTML::TableExtract)
