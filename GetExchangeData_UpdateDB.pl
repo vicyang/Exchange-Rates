@@ -32,8 +32,8 @@ our @task :shared;
 our $date :shared;
 
 my $file = "exchange_rates.perldb";
-my $from = "2015-02-07";
-my $to   = "2015-02-10";
+my $from = "2015-01-01";
+my $to   = "2017-10-10";
 
 if ( -e $file ) 
 {
@@ -77,11 +77,11 @@ grep { $_->detach() } @ths;
 
 printf("Dumping ... ");
 my $dbstr = Dumper($hash);
-$dbstr =~s/(\],)/$1\r\n    /g;
-$dbstr =~s/(\},)/$1\r\n  /g;
-$dbstr =~s/(\=\> \{)/$1\r\n    /g;
-# $dbstr =~s/(\]\},)/$1\r\n  /g;
-# $dbstr =~s/(\}\],)/$1\r\n/g;
+$dbstr =~s/(\],)/$1\r\n  /g;
+$dbstr =~s/(\},)/$1\r\n/g;
+$dbstr =~s/(\=\> \{)/$1\r\n  /g;
+$dbstr =~s/(\= \{)/$1\r\n/g;
+
 write_file( $file, { binmode => ":raw" }, $dbstr );
 printf("Done\n");
 
