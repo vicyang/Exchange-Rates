@@ -62,17 +62,17 @@ while ( $date le $to )
     $pageid = 1;
     @task = (0) x 6;
     
-    q/循环插入任务，当指定日期下的所有页面获取完毕，结束循环/;
+    #循环插入任务，当指定日期下的所有页面获取完毕，结束循环
     while ( sum(@task) != -6 )
     {
         grep { $task[$_] = $pageid++ if ( $task[$_] == 0 ); } (0..5);
     }
 
-    q/日期迭代/;
+    #日期迭代
     $date = date_plus($date, 1);
 }
 
-q/线程分离/;
+#线程分离
 grep { $_->detach() } @ths;
 
 printf("Dumping ... ");
@@ -91,20 +91,20 @@ sub func
     
     while (1)
     {
-        q/ 0: 等待指示;  -1: 等待下一回合 /;
+        # 0: 等待指示;  -1: 等待下一回合 
         if ( $task[$idx] <= 0 ) { sleep 0.1; next; }
 
         $content = get_page( $date, $date, $task[$idx] );
         $content =~/var m_nCurrPage = (\d+)/;
 
-        q/如果提取日期和任务日期不一致，标记为-1/;
+        #如果提取日期和任务日期不一致，标记为-1
         if ( $1 != $task[$idx] ) { $task[$idx] = -1; next; }
 
         $timestamp = get_exchange_data( $content );
         printf "[%d] mission: %2d time: %s\n",
                 $idx, $task[$idx], $timestamp;
         
-        $task[$idx] = 0;    q/任务清零/;
+        $task[$idx] = 0;    #任务清零
     }
 }
 
@@ -114,7 +114,7 @@ sub get_exchange_data
     our $data;
     my ($obj, $table, $timestamp);
 
-    q/count => 1 表示选择第二个表格/;
+    #count => 1 表示选择第二个表格
     $obj = HTML::TableExtract->new( depth => 0, count => 1 );
     $obj->parse($html_str);
 
@@ -154,7 +154,6 @@ sub get_page
 sub date_plus
 {
     my ($date, $days) = @_;
-    q/转为time格式（从1970年1月1日开始计算的秒数）/;
     my ($year, $mon, $day) = map { $_=~s/^0//; $_ } split("-", $date);
     my $t = timelocal(0, 0, 0, $day, $mon-1, $year)
             + $days * 24 * 3600;
