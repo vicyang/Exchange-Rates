@@ -72,8 +72,8 @@ while ( $date le $to )
     $date = date_plus($date, 1);
 }
 
-#线程分离
-grep { $_->detach() } @ths;
+sleep 0.1;  #给我0.1秒缓口气
+grep { $_->kill('KILL')->detach() } @ths;
 
 printf("Dumping ... ");
 my $dbstr = Dumper($hash);
@@ -90,6 +90,7 @@ sub func
     my ($idx) = @_;
     my $content;
     my $timestamp;
+    $SIG{'KILL'} = sub { threads->exit() };
     
     while (1)
     {
