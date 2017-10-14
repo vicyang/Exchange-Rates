@@ -33,7 +33,7 @@ our $date :shared;
 
 my $file = "exchange_rates.perldb";
 my $from = "2015-02-07";
-my $to   = "2015-12-07";
+my $to   = "2015-02-10";
 
 if ( -e $file ) 
 {
@@ -58,7 +58,7 @@ while ( $date le $to )
         next;
     }
 
-    $hash->{$date} = shared_clone( [] );
+    $hash->{$date} = shared_clone( {} );
     $pageid = 1;
     @task = (0) x 6;
     
@@ -77,9 +77,11 @@ grep { $_->detach() } @ths;
 
 printf("Dumping ... ");
 my $dbstr = Dumper($hash);
-$dbstr =~s/\[\{/[\r\n  {/g;
-$dbstr =~s/(\]\},)/$1\r\n  /g;
-$dbstr =~s/(\}\],)/$1\r\n/g;
+$dbstr =~s/(\],)/$1\r\n    /g;
+$dbstr =~s/(\},)/$1\r\n  /g;
+$dbstr =~s/(\=\> \{)/$1\r\n    /g;
+# $dbstr =~s/(\]\},)/$1\r\n  /g;
+# $dbstr =~s/(\}\],)/$1\r\n/g;
 write_file( $file, { binmode => ":raw" }, $dbstr );
 printf("Done\n");
 
@@ -128,7 +130,7 @@ sub get_exchange_data
         next if ( not $ele->[1] =~/\d/ );  '表格最后一行为空';
 
         $timestamp = pop @$ele;
-        push @{$hash->{$date}}, shared_clone( { $timestamp , [@$ele]} );
+        $hash->{$date}{$timestamp} = shared_clone( [@$ele] );
         #push @{$hash->{$date}}, shared_clone({$timestamp, join("\t", @$row)});
     }
 
