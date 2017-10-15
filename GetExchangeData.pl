@@ -20,7 +20,7 @@ use HTML::TableExtract;
 use IO::Handle;
 STDOUT->autoflush(1);
 $Data::Dumper::Indent = 0;
-#$Data::Dumper::Sortkeys = 1;
+$Data::Dumper::Sortkeys = 1;
 
 our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
 our $ua = LWP::UserAgent->new( 
@@ -75,7 +75,7 @@ sub func
         $content = get_page( $from, $to, $task[$idx] );
         #如果获取信息失败，重新get_page
         unless ($content =~/var m_nCurrPage = (\d+)/) {
-            printf "[%d] Try again: %4d\t<-\n", $idx, $task[$idx];
+            printf STDERR "[%d] Try again: %4d\t<-\n", $idx, $task[$idx];
             next; 
         }
 
