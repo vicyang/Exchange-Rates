@@ -75,7 +75,7 @@ sub func
         $content = get_page( $from, $to, $task[$idx] );
         #如果获取信息失败，重新get_page
         unless ($content =~/var m_nCurrPage = (\d+)/) {
-            printf STDERR "[%d] Try again: %4d\t<-\n", $idx, $task[$idx];
+            printf "[%d] Try again: %4d\t<-\n", $idx, $task[$idx];
             next; 
         }
 
