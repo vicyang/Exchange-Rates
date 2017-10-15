@@ -1,5 +1,9 @@
 ### 获取外汇牌价历史记录  
 
+* ### Branch Visualization  
+  基于threads1.0
+
+
 * ### Branch threads1.0  
   多线程，通过命令行传参调用，示例：  
   GetExchangeData.pl 2017-01-01 2017-01-31 test.perldb  
