@@ -73,10 +73,19 @@ sub func
         if ( $task[$idx] == 0 ) { sleep 0.01; next; }
 
         $content = get_page( $from, $to, $task[$idx] );
-        $content =~/var m_nCurrPage = (\d+)/;
-        last if ( $1 != $task[$idx] );
+        #如果获取信息失败，重新get_page
+        unless ($content =~/var m_nCurrPage = (\d+)/) {
+            printf "[%d] Try again: %4d\t<-\n", $idx, $task[$idx];
+            next; 
+        }
 
+        #如果页码和任务页码不匹配，结束任务
+        last if ( $1 != $task[$idx] );
         $timestamp = get_exchange_data( $content );
+        
+        #如果该页没有任何有效信息，结束任务
+        last if ( not defined $timestamp );
+
         printf "[%d] mission: %4d time: %s\n", 
                 $idx, $task[$idx], $timestamp;
         #归零
