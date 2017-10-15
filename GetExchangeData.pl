@@ -70,7 +70,7 @@ sub func
     
     while (1)
     {
-        if ( $task[$idx] == 0 ) { sleep 0.1; next; }
+        if ( $task[$idx] == 0 ) { sleep 0.01; next; }
 
         $content = get_page( $from, $to, $task[$idx] );
         $content =~/var m_nCurrPage = (\d+)/;

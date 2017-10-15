@@ -19,6 +19,7 @@
 
   * ### 效率  
     获取2017-01-01至2017-01-31的区间数据，耗时在10-20秒之间  
+    sleep 0.1 改为 0.01 后，耗时为7-8秒  
 
 * 参考资料  
   [Parsing HTML with Perl](http://radar.oreilly.com/2014/02/parsing-html-with-perl-2.html)  
