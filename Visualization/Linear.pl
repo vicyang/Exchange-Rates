@@ -28,9 +28,11 @@ BEGIN
     our $WIDTH  = 750;
 
     printf("loading...");
-    our $hash = eval read_file( "../Data/2017.perldb" );
+    our $hash = eval read_file( "../Data/2015.perldb" );
     our @days = (sort keys %$hash);
     our ($MIN, $MAX) = (1000.0, 0.0);
+
+    #全年最大值、最小值
     for my $d (@days)
     {
         for my $t ( keys %{$hash->{$d}} )
@@ -43,6 +45,11 @@ BEGIN
     printf("Done.\n");
     printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
     
+    $day = shift @days;
+    printf "select: %s\n", $day;
+    
+
+
 }
 
 =struct
@@ -53,7 +60,7 @@ BEGIN
 =cut
 
 
-&main();
+#&main();
 
 sub display 
 {
@@ -94,12 +101,12 @@ sub display
     {
         /^0?(\d+):0?(\d+)/;
         $time = ($1 * 60.0 + $2)/2.0 - $WIDTH/2.0 + 10.0;
-        glVertex3f($time, ($hash->{$day}{$_}[0]-$MIN)*10.0 - $HEIGHT/2.0 , 0.0);
+        glVertex3f($time, ($hash->{$day}{$_}[0]-$MIN)*20.0 - $HEIGHT/2.0 , 0.0);
     }
     @times;
 
     #补足长度
-    glVertex3f(360.0, ($hash->{$day}{$times[-1]}[0]-$MIN)*10.0 - $HEIGHT/2.0 , 0.0);
+    glVertex3f(360.0, ($hash->{$day}{$times[-1]}[0]-$MIN)*20.0 - $HEIGHT/2.0 , 0.0);
 
     glEnd();
 
