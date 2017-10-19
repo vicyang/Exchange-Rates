@@ -28,6 +28,7 @@ my $min_max = 24*60;
 for (my $min = 0; $min < $min_max; $min+= 10)
 {
     $data->{$min} = 1;
+    print "$min\n";
 }
 
 
