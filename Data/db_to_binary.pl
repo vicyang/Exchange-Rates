@@ -1,7 +1,5 @@
 use Storable qw/store retrieve/;
-use File::Basename;
 use File::Slurp;
-use Time::HiRes qw/time/;
 use IO::Handle;
 STDOUT->autoflush(1);
 
