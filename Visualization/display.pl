@@ -6,6 +6,7 @@
 =cut
 
 no strict 'refs';
+use Storable;
 use feature "switch";  #given
 use Encode;
 use Time::HiRes qw/sleep/;
@@ -28,7 +29,7 @@ BEGIN
     our $WIDTH  = 750;
 
     printf("loading...");
-    our $hash = eval read_file( "../Data/2017.perldb" );
+    our $hash = retrieve( "../Data/2015.perldb.bin" );
     our @days = (sort keys %$hash);
     our ($MIN, $MAX) = (1000.0, 0.0);
     for my $d (@days)

@@ -5,9 +5,8 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
-no strict 'refs';
-use feature "switch";  #given
 use Encode;
+use Storable;
 use Time::HiRes qw/sleep/;
 use Time::Local;
 use File::Slurp;
@@ -28,7 +27,7 @@ BEGIN
     our $WIDTH  = 750;
 
     printf("loading...");
-    our $hash = eval read_file( "../Data/2015.perldb" );
+    our $hash = retrieve( "../Data/2015.perldb.bin" );
     our @days = (sort keys %$hash);
     our ($MIN, $MAX) = (1000.0, 0.0);
 
