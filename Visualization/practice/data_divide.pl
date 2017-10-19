@@ -20,8 +20,9 @@ printf("done\n");
 grep 
 {
     /^0?(\d+):0?(\d+)/;
-    printf "%s %d\n", substr($_, 0, 5), $1*60+$2;
-} sort keys %$hash;
+    printf "%s %03d %.2f\n", substr($_, 0, 5), $1*60+$2, $hash->{$_}[0];
+}
+sort keys %$hash;
 
 my $data;
 my $min_max = 24*60;
