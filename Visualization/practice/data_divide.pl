@@ -18,5 +18,15 @@ printf("loading...");
 $hash = eval read_file( "./data.perldb" );
 printf("done\n");
 
+my $mins;
+for my $k ( sort keys %$hash )
+{
+    $mins = minutes($k);
+    printf "%s %-3d %.2f\n", $k, $mins, $hash->{$k}[3];
+}
 
-
+sub minutes
+{
+    $_[0] =~ /^0?(\d+):0?(\d+)/;
+    return $1*60+$2;
+}
