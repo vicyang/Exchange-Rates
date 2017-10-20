@@ -29,9 +29,9 @@ BEGIN
     our $DB_File = "nearly.perldb";
 
     printf("loading...");
-    # if (not -e $DB_File) {
+    if (not -e $DB_File) {
         system("perl ../Data/GetExchangeData.pl 2017-10-18 2017-10-20 $DB_File");
-    # }
+    }
 
     our $hash = eval read_file( $DB_File );
     our @days = (sort keys %$hash);
@@ -172,7 +172,7 @@ sub hitkey
 sub quit
 {
     glutDestroyWindow( $WinID );
-    exit;
+    exit 0;
 }
 
 sub main
