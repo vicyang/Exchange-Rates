@@ -29,13 +29,14 @@ BEGIN
     our $DB_File = "nearly.perldb";
 
     printf("loading...");
-    if (not -e $DB_File) {
+    # if (not -e $DB_File) {
         system("perl ../Data/GetExchangeData.pl 2017-10-18 2017-10-20 $DB_File");
-    }
+    # }
 
     our $hash = eval read_file( $DB_File );
     our @days = (sort keys %$hash);
     our ($MIN, $MAX) = (1000.0, 0.0);
+    
     for my $d (@days)
     {
         for my $t ( keys %{$hash->{$d}} )
@@ -116,7 +117,8 @@ sub display
             glTranslatef($time, -100.0, 0.0);
             glRotatef(90.0, 0.0, 0.0, 10.0);
             glScalef(0.1, 0.1, 0.1);
-            glutStrokeString(GLUT_STROKE_MONO_ROMAN, substr($_, 0, 5));
+            #glutStrokeString(GLUT_STROKE_MONO_ROMAN, substr($_, 0, 5));
+            glutStrokeString(GLUT_STROKE_MONO_ROMAN, $hash->{$day}{$_}[3]);
         glPopMatrix();
     }
     @times;
