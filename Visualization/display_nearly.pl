@@ -39,7 +39,6 @@ BEGIN
     our $hash = eval read_file( $DB_File );
     our @days = (sort keys %$hash);
     our ($MIN, $MAX) = (1000.0, 0.0);
-    our $DAY = shift @days;
     
     for my $d (@days)
     {
@@ -100,23 +99,19 @@ sub display
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glColor3f(0.8, 0.8, 0.8);
-    if ( $day != $DAY )
-    {
-        $day = $DAY;
+    $day = $days[0];
 
-        #时间清零，避免受到上一次影响
-        @times = ();
-        @rates = ();
-        #时间排序
-        @times = sort keys %{ $hash->{$day} };
-        @rates = map { $hash->{$day}{$_}[3] } @times;
-        ($min, $max) = ( min(@rates), max(@rates) );
-        $delta = $MAX - $MIN; #global
-        $ply   = 300.0/$delta;
-        printf("%s, count: %d, avg: %.3f, ply: %.3f, dt: %.3f\n", 
-            $day, $#rates+1, sum(@rates)/($#rates+1), $ply );
-    }
-
+    #时间清零，避免受到上一次影响
+    @times = ();
+    @rates = ();
+    #时间排序
+    @times = sort keys %{ $hash->{$day} };
+    @rates = map { $hash->{$day}{$_}[3] } @times;
+    ($min, $max) = ( min(@rates), max(@rates) );
+    $delta = $MAX - $MIN; #global
+    $ply   = 300.0/$delta;
+    printf("%s, count: %d, avg: %.3f, ply: %.3f, dt: %.3f\n", 
+        $day, $#rates+1, sum(@rates)/($#rates+1), $ply );
     $i++;
 
     glPushMatrix();
@@ -125,7 +120,7 @@ sub display
     glRotatef($ry, 0.0, 1.0, 0.0);
     glRotatef($rz, 0.0, 0.0, 1.0);
 
-    glColor3f(1.0, 1.0, 0.3);
+    glColor3f(0.2, 0.6, 0.8);
     glBegin(GL_LINE_STRIP);
     grep 
     {
@@ -134,12 +129,51 @@ sub display
         glVertex3f($time, ($hash->{$day}{$_}[3]-$MIN)*$ply , 0.0);
     }
     @times;
-
-    #补足长度
-    #glVertex3f(360.0, ($hash->{$day}{$times[-1]}[3]-$MIN)*10.0 - $HEIGHT/2.0 , 0.0);
     glEnd();
 
+    $day = $days[1];
+    #时间清零，避免受到上一次影响
+    @times = ();
+    @rates = ();
+    #时间排序
+    @times = sort keys %{ $hash->{$day} };
+    @rates = map { $hash->{$day}{$_}[3] } @times;
+    ($min, $max) = ( min(@rates), max(@rates) );
+
+    glColor3f(1.0, 0.5, 0.0);
+    glBegin(GL_LINE_STRIP);
+    grep 
+    {
+        /^0?(\d+):0?(\d+)/;
+        $time = ($1 * 60.0 + $2)/3.0;
+        glVertex3f($time, ($hash->{$day}{$_}[3]-$MIN)*$ply , -20.0);
+    }
+    @times;
+    glEnd();
+
+    $day = $days[2];
+    #时间清零，避免受到上一次影响
+    @times = ();
+    @rates = ();
+    #时间排序
+    @times = sort keys %{ $hash->{$day} };
+    @rates = map { $hash->{$day}{$_}[3] } @times;
+    ($min, $max) = ( min(@rates), max(@rates) );
+
+    glColor3f(0.5, 1.0, 0.0);
+    glBegin(GL_LINE_STRIP);
+    grep 
+    {
+        /^0?(\d+):0?(\d+)/;
+        $time = ($1 * 60.0 + $2)/3.0;
+        glVertex3f($time, ($hash->{$day}{$_}[3]-$MIN)*$ply , -40.0);
+    }
+    @times;
+    glEnd();
+
+
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
+    glColor3f(0.5, 0.7, 0.8);
 
     #横轴
     for (  my $mins = 0.0; $mins <= 1440.0; $mins+=40.0 )
@@ -182,7 +216,7 @@ sub init
 {
     glClearColor(0.0, 0.0, 0.0, 0.5);
     glPointSize(1.0);
-    glLineWidth(1.0);
+    glLineWidth(1.5);
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
@@ -208,11 +242,13 @@ sub reshape
     glViewport(0, 0, $w, $h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-100.0, $WIDTH-100.0, -100.0, $HEIGHT-100.0, 0.0, $fa*2.0); 
-    #gluPerspective( 90.0, 1.0, 1.0, $fa*2.0 );
+    #glOrtho(-100.0, $WIDTH-100.0, -100.0, $HEIGHT-100.0, 0.0, $fa*2.0); 
+    #glFrustum(-100.0, $WIDTH-100.0, -100.0, $HEIGHT-100.0, 800.0, $fa*5.0); 
+    gluPerspective( 35.0, 1.0, 1.0, $fa*2.0 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0.0,0.0,$fa, 0.0,0.0,0.0, 0.0,1.0, $fa);
+    #gluLookAt(0.0,0.0,$fa, 0.0,0.0,0.0, 0.0,1.0, $fa);
+    gluLookAt(200.0,200.0,$fa, 200.0,200.0,0.0, 0.0,1.0, $fa);
 }
 
 sub hitkey 
