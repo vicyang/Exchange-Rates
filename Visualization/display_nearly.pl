@@ -33,7 +33,7 @@ BEGIN
     our $DB_File = "nearly.perldb";
     printf("loading...");
     if (not -e $DB_File) {
-        system("perl ../Data/GetExchangeData.pl 2017-10-18 2017-10-20 $DB_File");
+        system("perl ../Data/GetExchangeData.pl 2017-10-18 2017-10-21 $DB_File");
     }
 
     our $hash = eval read_file( $DB_File );
@@ -130,7 +130,7 @@ sub display
     {
         /^0?(\d+):0?(\d+)/;
         $time = ($1 * 60.0 + $2)/2.0 - $WIDTH/2.0 + 10.0;
-        glVertex3f($time, ($hash->{$day}{$_}[3]-$MIN)*10.0 , 0.0);
+        glVertex3f($time, ($hash->{$day}{$_}[3]-$MIN)*50.0 , 0.0);
     }
     @times;
 
@@ -139,22 +139,36 @@ sub display
     glEnd();
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
-    grep 
+
+    #横轴
+    for (  my $mins = 0.0; $mins < 1440.0; $mins+=50.0 )
     {
-        /^0?(\d+):0?(\d+)/;
-        $time = ($1 * 60.0 + $2)/2.0 - $WIDTH/2.0 + 10.0;
+        $time = sprintf "%02d:%02d", int($mins/60), $mins % 60;
         glVertex3f(100.0, 0.0, 0.0);
         glPushMatrix();
-            glTranslatef($time, -100.0, 0.0);
-            glRotatef(90.0, 0.0, 1.0, 0.0);
+            glTranslatef($mins/2.0 - $WIDTH/2.0, -100.0, 0.0);
+            #glRotatef(90.0, 0.0, 1.0, 0.0);
             glRotatef(90.0, 0.0, 0.0, 1.0);
             glScalef(0.1, 0.1, 0.1);
             #glutStrokeString(GLUT_STROKE_MONO_ROMAN, substr($_, 0, 5));
-            glutStrokeString(GLUT_STROKE_MONO_ROMAN, $hash->{$day}{$_}[3]);
-
+            glutStrokeString(GLUT_STROKE_MONO_ROMAN, $time );
+            #draw_string("ab:?ge数据QT");
         glPopMatrix();
     }
-    @times;
+
+    #竖轴
+    for ( my $y = 0.0; $y < ($MAX-$MIN); $y+=0.1 )
+    {
+        glVertex3f(100.0, 0.0, 0.0);
+        glPushMatrix();
+            glTranslatef(-$WIDTH/2.0, $y*50.0, 0.0);
+            glScalef(0.1, 0.1, 0.1);
+            #glutStrokeString(GLUT_STROKE_MONO_ROMAN, substr($_, 0, 5));
+            glutStrokeString(GLUT_STROKE_MONO_ROMAN, ($y+$MIN) );
+            #draw_string("ab:?ge数据QT");
+        glPopMatrix();
+    }
+
 
     glPopMatrix();
     glutSwapBuffers();
