@@ -27,7 +27,7 @@ BEGIN
 {
     our $WinID;
     our $HEIGHT = 500;
-    our $WIDTH  = 750;
+    our $WIDTH  = 700;
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
 
     our $DB_File = "nearly.perldb";
@@ -39,6 +39,7 @@ BEGIN
     our $hash = eval read_file( $DB_File );
     our @days = (sort keys %$hash);
     our ($MIN, $MAX) = (1000.0, 0.0);
+    our $DAY = shift @days;
     
     for my $d (@days)
     {
@@ -92,19 +93,16 @@ sub display
     state @times;
     state $day;
     state $i = 0;
-    state ($min, $max);
+    state ($min, $max, $delta, $ply);
+
     our ($hash, @days, $MIN);
     my $hour, $time, $last;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glColor3f(0.8, 0.8, 0.8);
-    if ( $i % 500 == 0 )
+    if ( $day != $DAY )
     {
-        $day = shift @days;
-        unless ( defined $day ) {
-            glutDestroyWindow( $WinID );
-            exit;
-        }
+        $day = $DAY;
 
         #时间清零，避免受到上一次影响
         @times = ();
@@ -113,7 +111,10 @@ sub display
         @times = sort keys %{ $hash->{$day} };
         @rates = map { $hash->{$day}{$_}[3] } @times;
         ($min, $max) = ( min(@rates), max(@rates) );
-        printf("%s, count: %d, avg: %.3f\n", $day, $#rates+1, sum(@rates)/($#rates+1) );
+        $delta = $MAX - $MIN; #global
+        $ply   = 300.0/$delta;
+        printf("%s, count: %d, avg: %.3f, ply: %.3f, dt: %.3f\n", 
+            $day, $#rates+1, sum(@rates)/($#rates+1), $ply );
     }
 
     $i++;
@@ -129,8 +130,8 @@ sub display
     grep 
     {
         /^0?(\d+):0?(\d+)/;
-        $time = ($1 * 60.0 + $2)/2.0 - $WIDTH/2.0 + 10.0;
-        glVertex3f($time, ($hash->{$day}{$_}[3]-$MIN)*50.0 , 0.0);
+        $time = ($1 * 60.0 + $2)/3.0;
+        glVertex3f($time, ($hash->{$day}{$_}[3]-$MIN)*$ply , 0.0);
     }
     @times;
 
@@ -141,30 +142,27 @@ sub display
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
 
     #横轴
-    for (  my $mins = 0.0; $mins < 1440.0; $mins+=50.0 )
+    for (  my $mins = 0.0; $mins <= 1440.0; $mins+=40.0 )
     {
         $time = sprintf "%02d:%02d", int($mins/60), $mins % 60;
-        glVertex3f(100.0, 0.0, 0.0);
         glPushMatrix();
-            glTranslatef($mins/2.0 - $WIDTH/2.0, -100.0, 0.0);
-            #glRotatef(90.0, 0.0, 1.0, 0.0);
+            glTranslatef($mins/3.0, -80.0, 0.0);
+            glRotatef(90.0, 1.0, 0.0, 0.0);
+            glRotatef(180.0, 0.0, 1.0, 0.0);
             glRotatef(90.0, 0.0, 0.0, 1.0);
             glScalef(0.1, 0.1, 0.1);
-            #glutStrokeString(GLUT_STROKE_MONO_ROMAN, substr($_, 0, 5));
             glutStrokeString(GLUT_STROKE_MONO_ROMAN, $time );
             #draw_string("ab:?ge数据QT");
         glPopMatrix();
     }
 
     #竖轴
-    for ( my $y = 0.0; $y < ($MAX-$MIN); $y+=0.1 )
+    for ( my $y = 0.0; $y<300.0; $y+=15.0 )
     {
-        glVertex3f(100.0, 0.0, 0.0);
         glPushMatrix();
-            glTranslatef(-$WIDTH/2.0, $y*50.0, 0.0);
+            glTranslatef(-80.0, $y, 0.0);
             glScalef(0.1, 0.1, 0.1);
-            #glutStrokeString(GLUT_STROKE_MONO_ROMAN, substr($_, 0, 5));
-            glutStrokeString(GLUT_STROKE_MONO_ROMAN, ($y+$MIN) );
+            glutStrokeString(GLUT_STROKE_MONO_ROMAN, ( $delta*$y/300.0 +$MIN) );
             #draw_string("ab:?ge数据QT");
         glPopMatrix();
     }
@@ -210,7 +208,7 @@ sub reshape
     glViewport(0, 0, $w, $h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-$hz_half, $hz_half, -$vt_half, $vt_half, 0.0, $fa*2.0); 
+    glOrtho(-100.0, $WIDTH-100.0, -100.0, $HEIGHT-100.0, 0.0, $fa*2.0); 
     #gluPerspective( 90.0, 1.0, 1.0, $fa*2.0 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
