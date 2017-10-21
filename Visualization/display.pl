@@ -95,12 +95,12 @@ sub display
     {
         /^0?(\d+):0?(\d+)/;
         $time = ($1 * 60.0 + $2)/2.0 - $WIDTH/2.0 + 10.0;
-        glVertex3f($time, ($hash->{$day}{$_}[0]-$MIN)*10.0 - $HEIGHT/2.0 , 0.0);
+        glVertex3f($time, ($hash->{$day}{$_}[0]-$min)*50.0 , 0.0);
     }
     @times;
 
     #补足长度
-    glVertex3f(360.0, ($hash->{$day}{$times[-1]}[0]-$MIN)*10.0 - $HEIGHT/2.0 , 0.0);
+    #glVertex3f(360.0, ($hash->{$day}{$times[-1]}[0]-$MIN)*10.0 - $HEIGHT/2.0 , 0.0);
 
     glEnd();
 
@@ -120,8 +120,8 @@ sub init
     glLineWidth(1.0);
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    # glEnable(GL_POINT_SMOOTH);
-    # glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
+    glEnable(GL_LINE_SMOOTH);
 }
 
 sub reshape 
@@ -159,7 +159,7 @@ sub quit
 sub main
 {
     glutInit();
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |GLUT_DEPTH  );
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |GLUT_DEPTH | GLUT_MULTISAMPLE );
     glutInitWindowSize($WIDTH, $HEIGHT);
     glutInitWindowPosition(100, 100);
     our $WinID = glutCreateWindow("Display");
