@@ -5,9 +5,11 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
+use utf8;
 use autodie;
 use Storable;
 use Encode;
+use Font::FreeType;
 use Time::HiRes qw/sleep/;
 use Time::Local;
 use File::Slurp;
@@ -26,8 +28,9 @@ BEGIN
     our $WinID;
     our $HEIGHT = 500;
     our $WIDTH  = 750;
-    our $DB_File = "nearly.perldb";
+    our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
 
+    our $DB_File = "nearly.perldb";
     printf("loading...");
     if (not -e $DB_File) {
         system("perl ../Data/GetExchangeData.pl 2017-10-18 2017-10-20 $DB_File");
@@ -48,6 +51,31 @@ BEGIN
 
     printf("Done.\n");
     printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
+
+    our $tobj;
+    our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 32);
+    our $dpi = 100;
+    our $face = Font::FreeType->new->face($font);
+    $face->set_char_size($size, $size, $dpi, $dpi);
+}
+
+INIT
+{
+    our %TEXT;
+    print "Loading contours ... ";
+    my $code;
+    my $char;
+    foreach $code (0x00..0x7F)
+    {
+        $char = chr( $code );
+        $TEXT{ $char } = get_contour( $char ); 
+    }
+
+    foreach $char (split //, "年月日期数据")
+    {
+        $TEXT{ $char } = get_contour( $char ); 
+    }
+    print "Done\n";
 }
 
 =struct
@@ -56,7 +84,6 @@ BEGIN
         'day2' => { ... }, ...
      }
 =cut
-
 
 &main();
 
@@ -71,8 +98,6 @@ sub display
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glColor3f(0.8, 0.8, 0.8);
-    #glRectf(0.0, 0.0, 100.0, 100.0);
-
     if ( $i % 500 == 0 )
     {
         $day = shift @days;
@@ -93,7 +118,13 @@ sub display
 
     $i++;
 
-    glColor3f(1.0, 0.0, 0.0);
+    glPushMatrix();
+    glScalef( $zoom, $zoom, $zoom );
+    glRotatef($rx, 1.0, 0.0, 0.0);
+    glRotatef($ry, 0.0, 1.0, 0.0);
+    glRotatef($rz, 0.0, 0.0, 1.0);
+
+    glColor3f(1.0, 1.0, 0.3);
     glBegin(GL_LINE_STRIP);
     grep 
     {
@@ -115,14 +146,17 @@ sub display
         glVertex3f(100.0, 0.0, 0.0);
         glPushMatrix();
             glTranslatef($time, -100.0, 0.0);
-            glRotatef(90.0, 0.0, 0.0, 10.0);
+            glRotatef(90.0, 0.0, 1.0, 0.0);
+            glRotatef(90.0, 0.0, 0.0, 1.0);
             glScalef(0.1, 0.1, 0.1);
             #glutStrokeString(GLUT_STROKE_MONO_ROMAN, substr($_, 0, 5));
             glutStrokeString(GLUT_STROKE_MONO_ROMAN, $hash->{$day}{$_}[3]);
+
         glPopMatrix();
     }
     @times;
 
+    glPopMatrix();
     glutSwapBuffers();
 }
 
@@ -139,8 +173,16 @@ sub init
     glLineWidth(1.0);
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    # glEnable(GL_POINT_SMOOTH);
-    # glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
+    glEnable(GL_LINE_SMOOTH);
+
+    $tobj = gluNewTess();
+    gluTessCallback($tobj, GLU_TESS_BEGIN,     'DEFAULT');
+    gluTessCallback($tobj, GLU_TESS_END,       'DEFAULT');
+    gluTessCallback($tobj, GLU_TESS_VERTEX,    'DEFAULT');
+    gluTessCallback($tobj, GLU_TESS_COMBINE,   'DEFAULT');
+    gluTessCallback($tobj, GLU_TESS_ERROR,     'DEFAULT');
+    gluTessCallback($tobj, GLU_TESS_EDGE_FLAG, 'DEFAULT');
 }
 
 sub reshape 
@@ -149,7 +191,7 @@ sub reshape
     #Same with screen size
     state $hz_half = $WIDTH/2.0;
     state $vt_half = $HEIGHT/2.0;
-    state $fa = 250.0;
+    state $fa = 1000.0;
 
     glViewport(0, 0, $w, $h);
     glMatrixMode(GL_PROJECTION);
@@ -165,8 +207,15 @@ sub hitkey
 {
     our $WinID;
     my $k = lc(chr(shift));
-
-    if ( $k eq 'q') { glutDestroyWindow( $WinID ) }
+    if ( $k eq 'q') { quit() }
+    if ( $k eq 'w') { $rx+=10.0 }
+    if ( $k eq 's') { $rx-=10.0 }
+    if ( $k eq 'a') { $ry-=10.0 }
+    if ( $k eq 'd') { $ry+=10.0 }
+    if ( $k eq 'j') { $rz+=10.0 }
+    if ( $k eq 'k') { $rz-=10.0 }
+    if ( $k eq '[') { $zoom -= $zoom*0.1 }
+    if ( $k eq ']') { $zoom += $zoom*0.1 }
 }
 
 sub quit
@@ -178,7 +227,7 @@ sub quit
 sub main
 {
     glutInit();
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |GLUT_DEPTH  );
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |GLUT_DEPTH | GLUT_MULTISAMPLE );
     glutInitWindowSize($WIDTH, $HEIGHT);
     glutInitWindowPosition(100, 100);
     our $WinID = glutCreateWindow("Display");
@@ -196,4 +245,99 @@ sub time_to_date
     $mon += 1;
     $year += 1900;
     return sprintf "%d-%02d-%02d", $year,$mon,$day;
+}
+
+
+DRAW_STRING:
+{
+    sub draw_character
+    {
+        our @TEXT;
+        my $char = shift;
+        my $cts;
+        gluTessBeginPolygon($tobj);
+        for $cts ( @{$TEXT{$char}->{outline}} )
+        {
+            gluTessBeginContour($tobj);
+            grep { gluTessVertex_p($tobj, @$_, 0.0 ) } @$cts;
+            gluTessEndContour($tobj);
+        }
+        gluTessEndPolygon($tobj);
+    }
+
+    sub draw_string
+    {
+        my $s = shift;
+        for my $c ( split //, $s )
+        {
+            draw_character($c);
+            glTranslatef($TEXT{$c}->{right}, 0.0, 0.0);
+        }
+    }
+
+    sub pointOnLine
+    {
+        my ($x1, $y1, $x2, $y2, $t) = @_;
+        return (
+            ($x2-$x1)*$t + $x1, 
+            ($y2-$y1)*$t + $y1 
+        );
+    }
+
+    sub pointOnQuadBezier
+    {
+        my ($x1, $y1, $x2, $y2, $x3, $y3, $t) = @_;
+        return 
+            pointOnLine(
+                   pointOnLine( $x1, $y1, $x2, $y2, $t ),
+                   pointOnLine( $x2, $y2, $x3, $y3, $t ),
+                   $t
+            );
+    }
+
+    sub get_contour
+    {
+        our $glyph;
+        my $char = shift;
+        #previous x, y
+        my $px, $py, $parts, $step;
+        my @contour = ();
+        my $ncts    = -1;
+        
+        $parts = 5;
+        $glyph = $face->glyph_from_char($char) || return undef;
+
+        $glyph->outline_decompose(
+            move_to  => 
+                sub 
+                {
+                    ($px, $py) = @_;
+                    $ncts++;
+                    push @{$contour[$ncts]}, [$px, $py];
+                },
+            line_to  => 
+                sub
+                {
+                    ($px, $py) = @_;
+                    push @{$contour[$ncts]}, [$px, $py];
+                },
+            conic_to => 
+                sub
+                {
+                    for ($step = 0.0; $step <= $parts; $step+=1.0)
+                    {
+                        push @{$contour[$ncts]}, 
+                            [ pointOnQuadBezier( $px, $py, @_[2,3,0,1], $step/$parts ) ];
+                    }
+                    ($px, $py) = @_;
+                },
+            cubic_to => sub { warn "cubic\n"; }
+        );
+
+        return { 
+            outline => [@contour],
+            right   => $glyph->horizontal_advance(),
+        };
+    }
+
 }
