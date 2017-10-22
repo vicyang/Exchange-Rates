@@ -40,7 +40,8 @@ BEGIN
 
     our $hash = eval read_file( $DB_File );
     our @days = (sort keys %$hash);
-    @days = @days[10..$#days];
+    our $begin = 0;                  #展示数据的起始索引
+    #@days = @days[10..$#days];
 
     our ($MIN, $MAX) = (1000.0, 0.0);
     our $PLY, $DELTA;
@@ -83,10 +84,9 @@ INIT
     }
     print "Done\n";
 
+    #创建颜色插值表
     our $table_size = 300;
-    #颜色插值表
     our @color_idx;
-    #初始化
     for (0 .. $table_size) {
         push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
     }
@@ -134,7 +134,7 @@ sub display
     state $i = 0;
     state ($min, $max, $delta, $ply);
 
-    our ($hash, @days, $MIN, @color_idx);
+    our ($hash, @days, $begin, $MIN, @color_idx);
     my $day;
     my $hour, $time, $last;
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -148,9 +148,9 @@ sub display
     glRotatef($rz, 0.0, 0.0, 1.0);
     glTranslatef($mx, $my, $mz);
 
-    for my $idx ( 0..$#days )
+    for my $di ( $begin .. $begin+10 )
     {
-        $day = $days[$idx];
+        $day = $days[$di];
         #时间清零，避免受到上一次影响
         @times = ();
         @rates = ();
@@ -158,40 +158,29 @@ sub display
         @times = sort keys %{ $hash->{$day} };
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
-        #glColor4f(1.0, 0.5, $idx/$#days, 0.8 );
+        #glColor4f(1.0, 0.5, $di/$#days, 0.8 );
         my $t1, $x1, $y1, $last_x;
-        for my $ti ( 1 .. $#times )
+        glBegin(GL_LINE_STRIP);
+        for my $ti ( 0 .. $#times )
         {
-            glBegin(GL_QUADS);
-            $t1 = $times[$ti-1];
-            $t2 = $times[$ti];
-
+            $t1 = $times[$ti];
             $t1 =~ /^0?(\d+):0?(\d+)/;
             $x1 = ($1 * 60.0 + $2)/3.0;
             $y1 = ($hash->{$day}{$t1}[3]-$MIN)*$PLY;
-            $t2 =~ /^0?(\d+):0?(\d+)/;
-            $x2 = ($1 * 60.0 + $2)/3.0;
-            $y2 = ($hash->{$day}{$t2}[3]-$MIN)*$PLY;
-
             glColor4f( @{$color_idx[int($y1)]}{'R','G','B'}, 1.0 );
-            glVertex3f($x1, 0.0, -$idx*20.0 );
-            glVertex3f($x1, $y1, -$idx*20.0 );
-            glColor4f( @{$color_idx[int($y2)]}{'R','G','B'}, 1.0 );
-            glVertex3f($x2, $y2, -$idx*20.0 );
-            glVertex3f($x2, 0.0, -$idx*20.0 );
-            glEnd();
-
-            $last_x = $x2;
+            glVertex3f($x1, $y1, -($di-$begin)*20.0 );
+            $last_x = $x1;
         }
+        glEnd();
         
-        #纵轴数字
+        #日期
         glColor4f(1.0, 1.0, 1.0, 1.0);
         glLineWidth(1.5);
         glPushMatrix();
-            glTranslatef($last_x, 0.0, -$idx*20.0+0.1 );
+            glTranslatef($last_x, 0.0, -($di-$begin)*20.0 );
             glRotatef(90.0, 0.0, 0.0, 1.0);
             glScalef(0.08, 0.12, 0.12);
-            glutStrokeString(GLUT_STROKE_MONO_ROMAN, $days[$idx] );
+            glutStrokeString(GLUT_STROKE_MONO_ROMAN, $days[$di] );
         glPopMatrix();
         glLineWidth(1.0);
     }
@@ -232,8 +221,6 @@ sub display
         #glColor4f( @{$color_idx[int($z)]}{'R','G','B'}, 1.0 );
 
     }
-
-
 
     glPopMatrix();
     glutSwapBuffers();
@@ -291,6 +278,9 @@ sub hitkey
     our $WinID;
     my $k = lc(chr(shift));
     if ( $k eq 'q') { quit() }
+
+    if ( $k eq '-') { $begin-=1.0 }
+    if ( $k eq '=') { $begin+=1.0 }
 
     if ( $k eq '4') { $mx-=10.0 }
     if ( $k eq '6') { $mx+=10.0 }
