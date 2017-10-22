@@ -99,9 +99,9 @@ sub display
     our ($hash, @days, $MIN);
     my $day;
     my $hour, $time, $last;
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-    glColor3f(0.8, 0.8, 0.8);
+    glColor4f(0.8, 0.8, 0.8, 0.5);
 
     glPushMatrix();
     glScalef( $zoom, $zoom, $zoom );
@@ -109,7 +109,7 @@ sub display
     glRotatef($ry, 0.0, 1.0, 0.0);
     glRotatef($rz, 0.0, 0.0, 1.0);
 
-    for my $idx ( 0..$#days )
+    for my $idx ( 5..$#days )
     {
         $day = $days[$idx];
         #时间清零，避免受到上一次影响
@@ -119,16 +119,25 @@ sub display
         @times = sort keys %{ $hash->{$day} };
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
-        glColor3f(1.0, 0.5, $idx/$#days );
-        glBegin(GL_LINE_STRIP);
-        grep 
+        glColor4f(1.0, 0.5, $idx/$#days, 0.2 );
+        
+        my $t;
+        for my $ti ( 1 .. $#times )
         {
-            /^0?(\d+):0?(\d+)/;
-            $time = ($1 * 60.0 + $2)/3.0;
-            glVertex3f($time, ($hash->{$day}{$_}[3]-$MIN)*$PLY, -$idx*20.0 );
+            glBegin(GL_TRIANGLE_FAN);
+            $t = $times[$ti-1];
+            $t =~ /^0?(\d+):0?(\d+)/;
+            $x = ($1 * 60.0 + $2)/3.0;
+            glVertex3f($x, 0.0, -$idx*20.0 );
+            glVertex3f($x, ($hash->{$day}{$t}[3]-$MIN)*$PLY, -$idx*20.0 );
+
+            $t = $times[$ti];
+            $t =~ /^0?(\d+):0?(\d+)/;
+            $x = ($1 * 60.0 + $2)/3.0;
+            glVertex3f($x, ($hash->{$day}{$t}[3]-$MIN)*$PLY, -$idx*20.0 );
+            glVertex3f($x, 0.0, -$idx*20.0 );
+            glEnd();
         }
-        @times;
-        glEnd();
     }
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
@@ -173,13 +182,16 @@ sub idle
 
 sub init
 {
-    glClearColor(0.0, 0.0, 0.0, 0.5);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
     glPointSize(1.0);
     glLineWidth(1.5);
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_SMOOTH);
+    #glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_COLOR);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #glCullFace(GL_FRONT_AND_BACK);
 
     $tobj = gluNewTess();
     gluTessCallback($tobj, GLU_TESS_BEGIN,     'DEFAULT');
