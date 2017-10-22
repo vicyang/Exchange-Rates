@@ -40,7 +40,7 @@ BEGIN
     our $hash = eval read_file( $DB_File );
     our @days = (sort keys %$hash);
     our ($MIN, $MAX) = (1000.0, 0.0);
-    our $PLY;
+    our $PLY, $DELTA;
     
     for my $d (@days)
     {
@@ -50,7 +50,8 @@ BEGIN
             if ($hash->{$d}{$t}[3] > $MAX) { $MAX = $hash->{$d}{$t}[3] }
         }
     }
-    $PLY = 300.0/($MAX - $MIN);
+    $DELTA = $MAX - $MIN;
+    $PLY = 300.0/$DELTA;
     printf("Done.\n");
     printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
 
@@ -154,7 +155,7 @@ sub display
         glPushMatrix();
             glTranslatef(-80.0, $y, 0.0);
             glScalef(0.1, 0.1, 0.1);
-            glutStrokeString(GLUT_STROKE_MONO_ROMAN, ( $delta*$y/300.0 +$MIN) );
+            glutStrokeString(GLUT_STROKE_MONO_ROMAN, sprintf "%.3f", ( $DELTA *$y/300.0 + $MIN)/100.0 );
             #draw_string("ab:?ge数据QT");
         glPopMatrix();
     }
