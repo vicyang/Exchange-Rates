@@ -39,6 +39,8 @@ BEGIN
 
     our $hash = eval read_file( $DB_File );
     our @days = (sort keys %$hash);
+    @days = @days[10..$#days];
+
     our ($MIN, $MAX) = (1000.0, 0.0);
     our $PLY, $DELTA;
     
@@ -79,6 +81,41 @@ INIT
         $TEXT{ $char } = get_contour( $char ); 
     }
     print "Done\n";
+
+    our $table_size = 300;
+    #颜色插值表
+    our @color_idx;
+    #初始化
+    for (0 .. $table_size) {
+        push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
+    }
+
+    fill_color( 0,  60, 1.0, 0.0, 0.0);
+    fill_color(60, 120, 0.0, 1.0, 0.0);
+    fill_color(120,180, 0.5, 0.0, 1.0);
+    fill_color(180,240, 0.0, 1.0, 1.0);
+    fill_color(240,300, 0.0, 0.0, 1.0);
+
+    sub fill_color 
+    {
+        my %insert;
+        @{insert}{'offset', 'length', 'R', 'G', 'B'} = @_;
+        my $site;
+        my $ref;
+        my $tc;
+
+        for my $i (  -$insert{length} .. $insert{length} )
+        {
+            $site = $i + $insert{offset};
+            next if ($site < 0 or $site > $table_size);
+            $ref = $color_idx[$site];
+            for my $c ('R', 'G', 'B') 
+            {
+                $tc = $insert{$c} - abs( $insert{$c} / $insert{length} * $i),  #等量划分 * step
+                $ref->{$c} = $ref->{$c} > $tc ? $ref->{$c} : $tc  ;
+            }
+        }
+    }
 }
 
 =struct
@@ -96,7 +133,7 @@ sub display
     state $i = 0;
     state ($min, $max, $delta, $ply);
 
-    our ($hash, @days, $MIN);
+    our ($hash, @days, $MIN, @color_idx);
     my $day;
     my $hour, $time, $last;
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -119,17 +156,20 @@ sub display
         @times = sort keys %{ $hash->{$day} };
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
-        glColor4f(1.0, 0.5, $idx/$#days, 0.8 );
+        #glColor4f(1.0, 0.5, $idx/$#days, 0.8 );
         glBegin(GL_LINE_STRIP);
-        my $t;
+        my $t, $x, $y;
         for my $t (@times)
         {
             $t =~ /^0?(\d+):0?(\d+)/;
             $x = ($1 * 60.0 + $2)/3.0;
-            glColor4f( ($hash->{$day}{$t}[3]-$MIN)*$PLY/300.0, 1.0-($hash->{$day}{$t}[3]-$MIN)*$PLY/300.0, 0.0, 1.0 );
-            glVertex3f($x, ($hash->{$day}{$t}[3]-$MIN)*$PLY, -$idx*20.0 );
+            $y = ($hash->{$day}{$t}[3]-$MIN)*$PLY;
+            #print $y,"\n";
+            glColor4f( @{$color_idx[int($y)]}{'R','G','B'}, 1.0 );
+            glVertex3f($x, $y, -$idx*20.0 );
         }
         glEnd();
+        #quit();
     }
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
@@ -146,13 +186,13 @@ sub display
             glRotatef(90.0, 0.0, 0.0, 1.0);
             glScalef(0.1, 0.1, 0.1);
             glutStrokeString(GLUT_STROKE_MONO_ROMAN, $time );
-            #draw_string("ab:?ge数据QT");
         glPopMatrix();
     }
 
     #竖轴
     for ( my $y = 0.0; $y<300.0; $y+=15.0 )
     {
+        glColor4f( @{$color_idx[int($y)]}{'R','G','B'}, 1.0 );
         glPushMatrix();
             glTranslatef(-80.0, $y, 0.0);
             glScalef(0.1, 0.1, 0.1);
@@ -176,13 +216,12 @@ sub init
 {
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glPointSize(1.0);
-    glLineWidth(1.5);
+    glLineWidth(1.0);
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_SMOOTH);
     #glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_COLOR);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     #glCullFace(GL_POINT);
 
     $tobj = gluNewTess();
