@@ -31,7 +31,7 @@ BEGIN
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "../Data/2016.perldb.bin";
+    our $DB_File = "../Data/2017.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
     our $begin = 0;                  #展示数据的起始索引
@@ -54,7 +54,7 @@ BEGIN
     printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
 
     our $tobj;
-    our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 32);
+    our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 16);
     our $dpi = 100;
     our $face = Font::FreeType->new->face($font);
     $face->set_char_size($size, $size, $dpi, $dpi);
@@ -72,14 +72,14 @@ INIT
         $TEXT{ $char } = get_contour( $char ); 
     }
 
-    foreach $char (split //, "年月日期数据")
+    foreach $char (split //, "当天年月日最小大平均值高低落差，：。")
     {
         $TEXT{ $char } = get_contour( $char ); 
     }
     print "Done\n";
 
     #创建颜色插值表
-    our $table_size = 300;
+    our $table_size = 320;
     our @color_idx;
     for (0 .. $table_size) {
         push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
@@ -89,7 +89,7 @@ INIT
     fill_color(60, 120, 0.0, 1.0, 0.0);
     fill_color(120,180, 0.5, 0.0, 1.0);
     fill_color(180,240, 0.0, 1.0, 1.0);
-    fill_color(240,300, 0.0, 0.0, 1.0);
+    fill_color(240,320, 1.0, 0.9, 0.0);
 
     sub fill_color 
     {
@@ -142,7 +142,24 @@ sub display
     glRotatef($rz, 0.0, 0.0, 1.0);
     glTranslatef($mx, $my, $mz);
 
-    for my $di ( $begin .. $begin+15 )
+    if ( $begin+10 < $#days ) #如果不超过倒数十天，更新差值范围
+    {
+        $MAX = 0.0, $MIN = 1000.0;
+        for my $di ( $begin .. $begin+10 )
+        {
+            for my $t ( keys %{$hash->{$days[$di]}} )
+            {
+                if ($hash->{$days[$di]}{$t}[3] < $MIN) { $MIN = $hash->{$days[$di]}{$t}[3] }
+                if ($hash->{$days[$di]}{$t}[3] > $MAX) { $MAX = $hash->{$days[$di]}{$t}[3] }
+            }
+        }
+        $DELTA = $MAX - $MIN;
+        $PLY = $DELTA == 0 ? 1.0 : 300.0/$DELTA;
+    }
+
+    my $bright = 0.0;
+    my $color;
+    for my $di ( $begin .. $begin+10 )
     {
         $day = $days[$di];
         #时间清零，避免受到上一次影响
@@ -153,6 +170,9 @@ sub display
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
         my $t1, $x1, $y1, $last_x;
+
+        #$bright = 1.0-($di-$begin)/10.0 + 0.1;
+        $bright = $di == $begin ? 1.1 : 0.8*(1.0-($di-$begin)/12.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
         {
@@ -160,28 +180,30 @@ sub display
             $t1 =~ /^0?(\d+):0?(\d+)/;
             $x1 = ($1 * 60.0 + $2)/3.0;
             $y1 = ($hash->{$day}{$t1}[3]-$MIN)*$PLY;
-            glColor4f( @{$color_idx[int($y1)]}{'R','G','B'}, 1.0 );
+            #glColor4f( @{$color_idx[int($y1)]}{'R','G','B'}, 1.0 );
+            $color = $color_idx[int($y1)];
+            glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
             glVertex3f($x1, $y1, -($di-$begin)*30.0 );
         }
         glEnd();
+        glDisable(GL_LINE_STIPPLE);
         
-        next if $di != $begin;
-        #日期
-        glColor4f(1.0, 1.0, 1.0, 1.0);
-        glLineWidth(1.5);
-        glPushMatrix();
-            glTranslatef( 1440/3.0, 0.0, -($di-$begin)*20.0 );
-            #glRotatef(90.0, 0.0, 0.0, 1.0);
-            glScalef(0.08, 0.12, 0.12);
-            glutStrokeString(GLUT_STROKE_MONO_ROMAN, $days[$di] );
-        glPopMatrix();
-        glLineWidth(1.0);
+        # next if $di != $begin;
+        # #日期
+        # glColor4f(1.0, 1.0, 1.0, 1.0);
+        # glPushMatrix();
+        #     glTranslatef( 1440/3.0, 0.0, -($di-$begin)*20.0 );
+        #     #glRotatef(90.0, 0.0, 0.0, 1.0);
+        #     glScalef(0.08, 0.12, 0.12);
+        #     glutStrokeString(GLUT_STROKE_MONO_ROMAN, $days[$di] );
+        # glPopMatrix();
     }
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
-    glColor3f(0.5, 0.7, 0.8);
 
     #横轴
+    glLineWidth(1.0);
+    glColor3f(1.0, 1.0, 1.0);
     for (  my $mins = 0.0; $mins <= 1440.0; $mins+=40.0 )
     {
         $time = sprintf "%02d:%02d", int($mins/60), $mins % 60;
@@ -190,7 +212,7 @@ sub display
             #glRotatef(90.0, 1.0, 0.0, 0.0);
             #glRotatef(180.0, 0.0, 1.0, 0.0);
             glRotatef(90.0, 0.0, 0.0, 1.0);
-            glScalef(0.1, 0.1, 0.1);
+            glScalef(0.1, 0.08, 0.1);
             glutStrokeString(GLUT_STROKE_MONO_ROMAN, $time );
         glPopMatrix();
     }
@@ -202,18 +224,36 @@ sub display
         glPushMatrix();
             glTranslatef(-80.0, $y, 0.0);
             glScalef(0.1, 0.1, 0.1);
-            glutStrokeString(GLUT_STROKE_MONO_ROMAN, sprintf "%.3f", ( $DELTA *$y/300.0 + $MIN)/100.0 );
+            glutStrokeString(GLUT_STROKE_MONO_ROMAN, 
+                sprintf "%.3f", ( $DELTA *$y/300.0 + $MIN)/100.0 );
             #draw_string("ab:?ge数据QT");
         glPopMatrix();
     }
 
-    #Z轴 日期
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    for ( my $z = 0.0; $z < 300.0; $z+=20.0 )
+    #当天的数据特征
+    my $min = 1000.0, $max = 0.0;
+    for my $t ( keys %{$hash->{$days[$begin]}} )
     {
-        #glColor4f( @{$color_idx[int($z)]}{'R','G','B'}, 1.0 );
-
+        if ($hash->{$days[$begin]}{$t}[3] < $min) { $min = $hash->{$days[$begin]}{$t}[3] }
+        if ($hash->{$days[$begin]}{$t}[3] > $max) { $max = $hash->{$days[$begin]}{$t}[3] }
     }
+    my $delta = $max - $min;
+    my ($yy, $mm, $dd) = split(/\D/, $days[$begin] );
+    glColor3f(1.0, 1.0, 1.0);
+    glPushMatrix();
+    glTranslatef(-80.0, 310.0, 0.0);
+    draw_string(
+        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
+            $yy, $mm, $dd, $max/100.0, $min/100.0, $delta/100.0)
+    );
+    glPopMatrix();
+
+    # glBegin(GL_LINES);
+    # glVertex3f(0.0, 0.0, -300.0);
+    # glVertex3f(0.0, 300.0, -300.0);
+    # glVertex3f(480.0, 0.0, -300.0);
+    # glVertex3f(480.0, 300.0, -300.0);
+    # glEnd();
 
     glPopMatrix();
     glutSwapBuffers();
@@ -227,14 +267,16 @@ sub idle
 
 sub init
 {
-    glClearColor(0.0, 0.0, 0.0, 1.0);
+    #glClearColor(0.2, 0.3, 0.6, 1.0);
+    glClearColor(0.1, 0.2, 0.3, 1.0);
     glPointSize(1.0);
     glLineWidth(1.0);
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_SMOOTH);
-    glBlendFunc(GL_SRC_COLOR, GL_SRC_ALPHA);
+    glEnable(GL_LINE_STIPPLE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     #glCullFace(GL_POINT);
 
     $tobj = gluNewTess();
@@ -272,8 +314,8 @@ sub hitkey
     my $k = lc(chr(shift));
     if ( $k eq 'q') { quit() }
 
-    if ( $k eq '-') { $begin-=1.0 }
-    if ( $k eq '=') { $begin+=1.0 }
+    if ( $k eq '-') { $begin-=1 if $begin > 0 }
+    if ( $k eq '=') { $begin+=1 if $begin < $#days }
 
     if ( $k eq '4') { $mx-=10.0 }
     if ( $k eq '6') { $mx+=10.0 }
