@@ -109,7 +109,7 @@ sub display
     glRotatef($ry, 0.0, 1.0, 0.0);
     glRotatef($rz, 0.0, 0.0, 1.0);
 
-    for my $idx ( 5..$#days )
+    for my $idx ( 0..$#days )
     {
         $day = $days[$idx];
         #时间清零，避免受到上一次影响
@@ -119,25 +119,17 @@ sub display
         @times = sort keys %{ $hash->{$day} };
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
-        glColor4f(1.0, 0.5, $idx/$#days, 0.2 );
-        
+        glColor4f(1.0, 0.5, $idx/$#days, 0.8 );
+        glBegin(GL_LINE_STRIP);
         my $t;
-        for my $ti ( 1 .. $#times )
+        for my $t (@times)
         {
-            glBegin(GL_TRIANGLE_FAN);
-            $t = $times[$ti-1];
             $t =~ /^0?(\d+):0?(\d+)/;
             $x = ($1 * 60.0 + $2)/3.0;
-            glVertex3f($x, 0.0, -$idx*20.0 );
+            glColor4f( ($hash->{$day}{$t}[3]-$MIN)*$PLY/300.0, 1.0-($hash->{$day}{$t}[3]-$MIN)*$PLY/300.0, 0.0, 1.0 );
             glVertex3f($x, ($hash->{$day}{$t}[3]-$MIN)*$PLY, -$idx*20.0 );
-
-            $t = $times[$ti];
-            $t =~ /^0?(\d+):0?(\d+)/;
-            $x = ($1 * 60.0 + $2)/3.0;
-            glVertex3f($x, ($hash->{$day}{$t}[3]-$MIN)*$PLY, -$idx*20.0 );
-            glVertex3f($x, 0.0, -$idx*20.0 );
-            glEnd();
         }
+        glEnd();
     }
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
@@ -149,8 +141,8 @@ sub display
         $time = sprintf "%02d:%02d", int($mins/60), $mins % 60;
         glPushMatrix();
             glTranslatef($mins/3.0, -80.0, 0.0);
-            glRotatef(90.0, 1.0, 0.0, 0.0);
-            glRotatef(180.0, 0.0, 1.0, 0.0);
+            #glRotatef(90.0, 1.0, 0.0, 0.0);
+            #glRotatef(180.0, 0.0, 1.0, 0.0);
             glRotatef(90.0, 0.0, 0.0, 1.0);
             glScalef(0.1, 0.1, 0.1);
             glutStrokeString(GLUT_STROKE_MONO_ROMAN, $time );
@@ -191,7 +183,7 @@ sub init
     glEnable(GL_LINE_SMOOTH);
     #glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_COLOR);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    #glCullFace(GL_FRONT_AND_BACK);
+    #glCullFace(GL_POINT);
 
     $tobj = gluNewTess();
     gluTessCallback($tobj, GLU_TESS_BEGIN,     'DEFAULT');
