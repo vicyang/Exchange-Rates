@@ -29,6 +29,7 @@ BEGIN
     our $HEIGHT = 500;
     our $WIDTH  = 700;
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
+    our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
     our $DB_File = "nearly.perldb";
     #our $DB_File = "../Data/2014.perldb";
@@ -145,6 +146,7 @@ sub display
     glRotatef($rx, 1.0, 0.0, 0.0);
     glRotatef($ry, 0.0, 1.0, 0.0);
     glRotatef($rz, 0.0, 0.0, 1.0);
+    glTranslatef($mx, $my, $mz);
 
     for my $idx ( 0..$#days )
     {
@@ -157,18 +159,29 @@ sub display
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
         #glColor4f(1.0, 0.5, $idx/$#days, 0.8 );
-        glBegin(GL_LINE_STRIP);
-        my $t, $x, $y;
-        for my $t (@times)
+        my $t1, $x1, $y1;
+        for my $ti ( 1 .. $#times )
         {
-            $t =~ /^0?(\d+):0?(\d+)/;
-            $x = ($1 * 60.0 + $2)/3.0;
-            $y = ($hash->{$day}{$t}[3]-$MIN)*$PLY;
-            #print $y,"\n";
-            glColor4f( @{$color_idx[int($y)]}{'R','G','B'}, 1.0 );
-            glVertex3f($x, $y, -$idx*20.0 );
+            glBegin(GL_QUADS);
+            $t1 = $times[$ti-1];
+            $t2 = $times[$ti];
+
+            $t1 =~ /^0?(\d+):0?(\d+)/;
+            $x1 = ($1 * 60.0 + $2)/3.0;
+            $y1 = ($hash->{$day}{$t1}[3]-$MIN)*$PLY;
+            $t2 =~ /^0?(\d+):0?(\d+)/;
+            $x2 = ($1 * 60.0 + $2)/3.0;
+            $y2 = ($hash->{$day}{$t2}[3]-$MIN)*$PLY;
+
+            glColor4f( @{$color_idx[int($y1)]}{'R','G','B'}, 1.0 );
+            glVertex3f($x1, 0.0, -$idx*20.0 );
+            glVertex3f($x1, $y1, -$idx*20.0 );
+            glColor4f( @{$color_idx[int($y2)]}{'R','G','B'}, 1.0 );
+            glVertex3f($x2, $y2, -$idx*20.0 );
+            glVertex3f($x2, 0.0, -$idx*20.0 );
+            glEnd();
         }
-        glEnd();
+        
         #quit();
     }
 
@@ -221,7 +234,7 @@ sub init
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_SMOOTH);
-    #glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_COLOR);
+    glBlendFunc(GL_SRC_COLOR, GL_SRC_ALPHA);
     #glCullFace(GL_POINT);
 
     $tobj = gluNewTess();
@@ -258,6 +271,14 @@ sub hitkey
     our $WinID;
     my $k = lc(chr(shift));
     if ( $k eq 'q') { quit() }
+
+    if ( $k eq '4') { $mx-=10.0 }
+    if ( $k eq '6') { $mx+=10.0 }
+    if ( $k eq '8') { $my+=10.0 }
+    if ( $k eq '2') { $my-=10.0 }
+    if ( $k eq '5') { $mz+=10.0 }
+    if ( $k eq '0') { $mz-=10.0 }
+
     if ( $k eq 'w') { $rx+=10.0 }
     if ( $k eq 's') { $rx-=10.0 }
     if ( $k eq 'a') { $ry-=10.0 }
