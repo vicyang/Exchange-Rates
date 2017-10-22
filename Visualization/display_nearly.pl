@@ -159,7 +159,7 @@ sub display
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
         #glColor4f(1.0, 0.5, $idx/$#days, 0.8 );
-        my $t1, $x1, $y1;
+        my $t1, $x1, $y1, $last_x;
         for my $ti ( 1 .. $#times )
         {
             glBegin(GL_QUADS);
@@ -180,9 +180,20 @@ sub display
             glVertex3f($x2, $y2, -$idx*20.0 );
             glVertex3f($x2, 0.0, -$idx*20.0 );
             glEnd();
+
+            $last_x = $x2;
         }
         
-        #quit();
+        #纵轴数字
+        glColor4f(1.0, 1.0, 1.0, 1.0);
+        glLineWidth(1.5);
+        glPushMatrix();
+            glTranslatef($last_x, 0.0, -$idx*20.0+0.1 );
+            glRotatef(90.0, 0.0, 0.0, 1.0);
+            glScalef(0.08, 0.12, 0.12);
+            glutStrokeString(GLUT_STROKE_MONO_ROMAN, $days[$idx] );
+        glPopMatrix();
+        glLineWidth(1.0);
     }
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
@@ -213,6 +224,15 @@ sub display
             #draw_string("ab:?ge数据QT");
         glPopMatrix();
     }
+
+    #Z轴 日期
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    for ( my $z = 0.0; $z < 300.0; $z+=20.0 )
+    {
+        #glColor4f( @{$color_idx[int($z)]}{'R','G','B'}, 1.0 );
+
+    }
+
 
 
     glPopMatrix();
