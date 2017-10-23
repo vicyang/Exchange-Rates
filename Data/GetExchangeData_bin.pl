@@ -6,8 +6,7 @@
 =cut
 
 use Encode;
-use Clone qw/clone/;
-use Storable qw/store dclone/;
+use Storable qw/store/;
 use threads;
 use threads::shared;
 use Try::Tiny;
