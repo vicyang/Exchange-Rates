@@ -5,6 +5,7 @@
 
   其他参考
   https://stackoverflow.com/questions/17701276/perl-using-storable-and-threadqueue-correctly
+  [Unable to store shared hash with Storable](http://www.perlmonks.org/?node_id=919696)
 
   其他考虑：
   1. Clone 模块 recursively copy Perl datatypes

@@ -13,6 +13,7 @@ use Font::FreeType;
 use Time::HiRes qw/sleep/;
 use Data::Dumper;
 use List::Util qw/sum min max/;
+use ExchangeRates;
 
 use OpenGL qw/ :all /;
 use OpenGL::Config;
@@ -31,16 +32,14 @@ BEGIN
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
     my $dt1 = DateTime->today();
-    my $dt2 = DateTime->today()->add( days => -10 );
+    my $dt2 = DateTime->today()->add( days => -5 );
 
     our $to   = $dt1->strftime("%Y-%m-%d");
     our $from = $dt2->strftime("%Y-%m-%d");
-    our $DB_File = "nearly.perldb.bin";
 
-    printf("loading ...");
-    system("perl ../Data/GetExchangeData_bin.pl $from $to $DB_File");
+    our $hash = {};
+    ExchangeRates::main( $from, $to, \$hash );
 
-    our $hash = retrieve $DB_File;
     our @days = (sort keys %$hash);
     our $begin = 0;                  #展示数据的起始索引
     #@days = @days[10..$#days];
@@ -56,6 +55,7 @@ BEGIN
             if ($hash->{$d}{$t}[3] > $MAX) { $MAX = $hash->{$d}{$t}[3] }
         }
     }
+
     $DELTA = $MAX - $MIN;
     $PLY = 300.0/$DELTA;
     printf("Done.\n");
@@ -152,6 +152,7 @@ sub display
 
     for my $di ( $begin .. $begin+10 )
     {
+        next if ($di < 0 or $di > $#days);
         $day = $days[$di];
         #时间清零，避免受到上一次影响
         @times = ();
@@ -281,8 +282,10 @@ sub hitkey
     my $k = lc(chr(shift));
     if ( $k eq 'q') { quit() }
 
-    if ( $k eq '-') { $begin-=1.0 }
-    if ( $k eq '=') { $begin+=1.0 }
+    if ( $k eq '-' ) { $begin-=1 }
+    if ( $k eq '=' ) { $begin+=1 }
+    # if ( $k eq '-' and ($begin > 0) ) { $begin-=1 }
+    # if ( $k eq '=' and ($begin+10 < $#days) ) { $begin+=1 }
 
     if ( $k eq '4') { $mx-=10.0 }
     if ( $k eq '6') { $mx+=10.0 }
