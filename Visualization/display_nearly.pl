@@ -11,34 +11,36 @@ use Storable;
 use Encode;
 use Font::FreeType;
 use Time::HiRes qw/sleep/;
-use Time::Local;
-use File::Slurp;
 use Data::Dumper;
 use List::Util qw/sum min max/;
 
-use IO::Handle;
 use OpenGL qw/ :all /;
 use OpenGL::Config;
 use feature 'state';
 
-STDOUT->autoflush(1);
-
 BEGIN
 {
+    use DateTime;
+    use IO::Handle;
+    STDOUT->autoflush(1);
+
     our $WinID;
     our $HEIGHT = 500;
     our $WIDTH  = 700;
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "nearly.perldb";
-    #our $DB_File = "../Data/2014.perldb";
-    printf("loading...");
-    if (not -e $DB_File) {
-        system("perl ../Data/GetExchangeData.pl 2017-10-01 2017-10-21 $DB_File");
-    }
+    my $dt1 = DateTime->today();
+    my $dt2 = DateTime->today()->add( days => -10 );
 
-    our $hash = eval read_file( $DB_File );
+    our $to   = $dt1->strftime("%Y-%m-%d");
+    our $from = $dt2->strftime("%Y-%m-%d");
+    our $DB_File = "nearly.perldb.bin";
+
+    printf("loading ...");
+    system("perl ../Data/GetExchangeData_bin.pl $from $to $DB_File");
+
+    our $hash = retrieve $DB_File;
     our @days = (sort keys %$hash);
     our $begin = 0;                  #展示数据的起始索引
     #@days = @days[10..$#days];
