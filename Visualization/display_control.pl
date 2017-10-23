@@ -34,6 +34,7 @@ BEGIN
     our $DB_File = "../Data/2017.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
+    @days = @days[280.. $#days];
     our $begin = 0;                  #展示数据的起始索引
     sub col { 2 };
 
@@ -162,8 +163,10 @@ sub display
 
     my $bright = 0.0;
     my $color;
+
     for my $di ( $begin .. $begin+10 )
     {
+        next if ( $di < 0 or $di > $#days );
         $day = $days[$di];
         #时间清零，避免受到上一次影响
         @times = ();
@@ -173,7 +176,6 @@ sub display
         @rates = map { $hash->{$day}{$_}[col] } @times;
 
         my $t1, $x1, $y1, $last_x;
-
         $bright = $di == $begin ? 1.1 : 0.8*(1.0-($di-$begin)/12.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
