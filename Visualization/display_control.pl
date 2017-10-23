@@ -34,7 +34,6 @@ BEGIN
     our $DB_File = "../Data/2017.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
-    @days = @days[280.. $#days];
     our $begin = 0;                  #展示数据的起始索引
     sub col { 2 };
 
@@ -98,11 +97,10 @@ INIT
         push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
     }
 
-    fill_color( 0,  60, 1.0, 0.0, 0.0);
-    fill_color(60, 120, 0.0, 1.0, 0.0);
-    fill_color(120,180, 0.5, 0.0, 1.0);
-    fill_color(180,240, 0.0, 1.0, 1.0);
-    fill_color(240,320, 1.0, 0.9, 0.0);
+    fill_color( 20, 60, 1.0, 0.0, 0.0);
+    fill_color(100,100, 1.0, 0.6, 0.0);
+    fill_color(200,100, 0.2, 0.8, 0.2);
+    fill_color(300,300, 0.2, 0.6, 1.0);
 
     sub fill_color 
     {
@@ -270,8 +268,8 @@ sub idle
 
 sub init
 {
-    #glClearColor(0.0, 0.0, 0.0, 1.0);
-    glClearColor(0.1, 0.2, 0.3, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    #glClearColor(0.1, 0.2, 0.3, 1.0);
     glPointSize(1.0);
     glLineWidth(1.0);
     glEnable(GL_BLEND);
