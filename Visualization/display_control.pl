@@ -31,25 +31,37 @@ BEGIN
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "../Data/2017.perldb.bin";
+    our $DB_File = "../Data/2014.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
     our $begin = 0;                  #展示数据的起始索引
-    #@days = @days[10..$#days];
+    sub col { 2 };
 
+    our %month;
     our ($MIN, $MAX) = (1000.0, 0.0);
-    our $PLY, $DELTA;
-    
+    my $m;
     for my $d (@days)
     {
+        $m = substr($d, 0, 7);  #年+月作为 key
+        if ( not exists $month{$m} ) { 
+            $month{$m} = { 'min' => 1000.0, 'max' => 0.0, 'delta' => undef, 'ply' => 1.0 };
+        }
         for my $t ( keys %{$hash->{$d}} )
         {
-            if ($hash->{$d}{$t}[3] < $MIN) { $MIN = $hash->{$d}{$t}[3] }
-            if ($hash->{$d}{$t}[3] > $MAX) { $MAX = $hash->{$d}{$t}[3] }
+            if ($hash->{$d}{$t}[col] < $MIN) { $MIN = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] > $MAX) { $MAX = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] < $month{$m}->{min}) { $month{$m}->{min} = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] > $month{$m}->{max}) { $month{$m}->{max} = $hash->{$d}{$t}[col] }
         }
     }
-    $DELTA = $MAX - $MIN;
-    $PLY = 300.0/$DELTA;
+
+    for my $m ( keys %month )
+    {
+        $month{$m}->{delta} = $month{$m}->{max} - $month{$m}->{min};
+        $month{$m}->{ply}   = 300.0 / $month{$m}->{delta} 
+            if ($month{$m}->{delta} != 0);
+    }
+
     printf("Done.\n");
     printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
 
@@ -72,7 +84,7 @@ INIT
         $TEXT{ $char } = get_contour( $char ); 
     }
 
-    foreach $char (split //, "当天年月日最小大平均值高低落差，：。")
+    foreach $char (split //, "本当天年月日最小大高低平均值落差，：。")
     {
         $TEXT{ $char } = get_contour( $char ); 
     }
@@ -142,20 +154,11 @@ sub display
     glRotatef($rz, 0.0, 0.0, 1.0);
     glTranslatef($mx, $my, $mz);
 
-    if ( $begin+10 < $#days ) #如果不超过倒数十天，更新差值范围
-    {
-        $MAX = 0.0, $MIN = 1000.0;
-        for my $di ( $begin .. $begin+10 )
-        {
-            for my $t ( keys %{$hash->{$days[$di]}} )
-            {
-                if ($hash->{$days[$di]}{$t}[3] < $MIN) { $MIN = $hash->{$days[$di]}{$t}[3] }
-                if ($hash->{$days[$di]}{$t}[3] > $MAX) { $MAX = $hash->{$days[$di]}{$t}[3] }
-            }
-        }
-        $DELTA = $MAX - $MIN;
-        $PLY = $DELTA == 0 ? 1.0 : 300.0/$DELTA;
-    }
+    my $m = substr($days[$begin], 0, 7);
+    $MIN = $month{$m}->{min};
+    $MAX = $month{$m}->{max};
+    $PLY = $month{$m}->{ply};
+    $DELTA = $month{$m}->{delta};
 
     my $bright = 0.0;
     my $color;
@@ -167,11 +170,10 @@ sub display
         @rates = ();
         #时间排序
         @times = sort keys %{ $hash->{$day} };
-        @rates = map { $hash->{$day}{$_}[3] } @times;
+        @rates = map { $hash->{$day}{$_}[col] } @times;
 
         my $t1, $x1, $y1, $last_x;
 
-        #$bright = 1.0-($di-$begin)/10.0 + 0.1;
         $bright = $di == $begin ? 1.1 : 0.8*(1.0-($di-$begin)/12.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
@@ -179,24 +181,13 @@ sub display
             $t1 = $times[$ti];
             $t1 =~ /^0?(\d+):0?(\d+)/;
             $x1 = ($1 * 60.0 + $2)/3.0;
-            $y1 = ($hash->{$day}{$t1}[3]-$MIN)*$PLY;
-            #glColor4f( @{$color_idx[int($y1)]}{'R','G','B'}, 1.0 );
+            $y1 = ($hash->{$day}{$t1}[col]-$MIN)*$PLY;
+
             $color = $color_idx[int($y1)];
             glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
             glVertex3f($x1, $y1, -($di-$begin)*30.0 );
         }
         glEnd();
-        glDisable(GL_LINE_STIPPLE);
-        
-        # next if $di != $begin;
-        # #日期
-        # glColor4f(1.0, 1.0, 1.0, 1.0);
-        # glPushMatrix();
-        #     glTranslatef( 1440/3.0, 0.0, -($di-$begin)*20.0 );
-        #     #glRotatef(90.0, 0.0, 0.0, 1.0);
-        #     glScalef(0.08, 0.12, 0.12);
-        #     glutStrokeString(GLUT_STROKE_MONO_ROMAN, $days[$di] );
-        # glPopMatrix();
     }
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
@@ -218,7 +209,7 @@ sub display
     }
 
     #竖轴
-    for ( my $y = 0.0; $y<300.0; $y+=15.0 )
+    for ( my $y = 0.0; $y<=300.0; $y+=15.0 )
     {
         glColor4f( @{$color_idx[int($y)]}{'R','G','B'}, 1.0 );
         glPushMatrix();
@@ -234,19 +225,29 @@ sub display
     my $min = 1000.0, $max = 0.0;
     for my $t ( keys %{$hash->{$days[$begin]}} )
     {
-        if ($hash->{$days[$begin]}{$t}[3] < $min) { $min = $hash->{$days[$begin]}{$t}[3] }
-        if ($hash->{$days[$begin]}{$t}[3] > $max) { $max = $hash->{$days[$begin]}{$t}[3] }
+        if ($hash->{$days[$begin]}{$t}[col] < $min) { $min = $hash->{$days[$begin]}{$t}[col] }
+        if ($hash->{$days[$begin]}{$t}[col] > $max) { $max = $hash->{$days[$begin]}{$t}[col] }
     }
     my $delta = $max - $min;
     my ($yy, $mm, $dd) = split(/\D/, $days[$begin] );
     glColor3f(1.0, 1.0, 1.0);
     glPushMatrix();
-    glTranslatef(-80.0, 310.0, 0.0);
+    glTranslatef(-80.0, 320.0, 0.0);
     draw_string(
         sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
             $yy, $mm, $dd, $max/100.0, $min/100.0, $delta/100.0)
     );
     glPopMatrix();
+
+    # glPushMatrix();
+    # glTranslatef(50.0, 350.0, 0.0);
+    # draw_string(
+    #     sprintf("本月最高:%.3f 最低:%.3f 落差: %.3f\n", 
+    #         $month{$m}->{max}/100.0, 
+    #         $month{$m}->{min}/100.0, $month{$m}->{delta}/100.0)
+    # );
+    # glPopMatrix();
+
 
     # glBegin(GL_LINES);
     # glVertex3f(0.0, 0.0, -300.0);
@@ -267,7 +268,7 @@ sub idle
 
 sub init
 {
-    #glClearColor(0.2, 0.3, 0.6, 1.0);
+    #glClearColor(0.0, 0.0, 0.0, 1.0);
     glClearColor(0.1, 0.2, 0.3, 1.0);
     glPointSize(1.0);
     glLineWidth(1.0);
@@ -455,5 +456,4 @@ DRAW_STRING:
             right   => $glyph->horizontal_advance(),
         };
     }
-
 }
