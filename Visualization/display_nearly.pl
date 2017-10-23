@@ -32,7 +32,7 @@ BEGIN
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
     my $dt1 = DateTime->today();
-    my $dt2 = DateTime->today()->add( days => -5 );
+    my $dt2 = DateTime->today()->add( days => -1 );
 
     our $to   = $dt1->strftime("%Y-%m-%d");
     our $from = $dt2->strftime("%Y-%m-%d");
