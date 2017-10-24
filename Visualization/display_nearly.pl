@@ -30,9 +30,10 @@ BEGIN
     our $WIDTH  = 700;
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
+    sub col { 2 };
 
     my $dt1 = DateTime->today();
-    my $dt2 = DateTime->today()->add( days => -1 );
+    my $dt2 = DateTime->today()->add( days => -5 );
 
     our $to   = $dt1->strftime("%Y-%m-%d");
     our $from = $dt2->strftime("%Y-%m-%d");
@@ -51,8 +52,8 @@ BEGIN
     {
         for my $t ( keys %{$hash->{$d}} )
         {
-            if ($hash->{$d}{$t}[3] < $MIN) { $MIN = $hash->{$d}{$t}[3] }
-            if ($hash->{$d}{$t}[3] > $MAX) { $MAX = $hash->{$d}{$t}[3] }
+            if ($hash->{$d}{$t}[col] < $MIN) { $MIN = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] > $MAX) { $MAX = $hash->{$d}{$t}[col] }
         }
     }
 
@@ -62,7 +63,7 @@ BEGIN
     printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
 
     our $tobj;
-    our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 32);
+    our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 16);
     our $dpi = 100;
     our $face = Font::FreeType->new->face($font);
     $face->set_char_size($size, $size, $dpi, $dpi);
@@ -80,24 +81,23 @@ INIT
         $TEXT{ $char } = get_contour( $char ); 
     }
 
-    foreach $char (split //, "年月日期数据")
+    foreach $char (split //, "本当天年月日最小大高低平均值落差，：。")
     {
         $TEXT{ $char } = get_contour( $char ); 
     }
     print "Done\n";
 
     #创建颜色插值表
-    our $table_size = 300;
+    our $table_size = 360;
     our @color_idx;
     for (0 .. $table_size) {
         push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
     }
 
-    fill_color( 0,  60, 1.0, 0.0, 0.0);
-    fill_color(60, 120, 0.0, 1.0, 0.0);
-    fill_color(120,180, 0.5, 0.0, 1.0);
-    fill_color(180,240, 0.0, 1.0, 1.0);
-    fill_color(240,300, 0.0, 0.0, 1.0);
+    fill_color( 20,200, 1.0, 0.6, 0.2);
+    fill_color(150,200, 0.6, 1.0, 0.6);
+    fill_color(280,300, 0.3, 0.6, 1.0);
+    # fill_color(300,100, 0.3, 0.6, 1.0);
 
     sub fill_color 
     {
@@ -149,6 +149,7 @@ sub display
     glRotatef($ry, 0.0, 1.0, 0.0);
     glRotatef($rz, 0.0, 0.0, 1.0);
     glTranslatef($mx, $my, $mz);
+    my $bright = 1.0;
 
     for my $di ( $begin .. $begin+10 )
     {
@@ -162,7 +163,8 @@ sub display
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
         #glColor4f(1.0, 0.5, $di/$#days, 0.8 );
-        my $t1, $x1, $y1, $last_x;
+        my $t1, $x1, $y1, $last_x, $last_y;
+        $bright = $di == $begin ? 1.1 : 0.8*(1.0-($di-$begin)/12.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
         {
@@ -170,9 +172,12 @@ sub display
             $t1 =~ /^0?(\d+):0?(\d+)/;
             $x1 = ($1 * 60.0 + $2)/3.0;
             $y1 = ($hash->{$day}{$t1}[3]-$MIN)*$PLY;
-            glColor4f( @{$color_idx[int($y1)]}{'R','G','B'}, 1.0 );
+
+            $color = $color_idx[int($y1)];
+            glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
             glVertex3f($x1, $y1, -($di-$begin)*20.0 );
             $last_x = $x1;
+            $last_y = $y1;
         }
         glEnd();
         
@@ -180,8 +185,8 @@ sub display
         glColor4f(1.0, 1.0, 1.0, 1.0);
         glLineWidth(1.5);
         glPushMatrix();
-            glTranslatef($last_x, 0.0, -($di-$begin)*20.0 );
-            glRotatef(90.0, 0.0, 0.0, 1.0);
+            glTranslatef(480.0, ($di-$begin)*20.0, -($di-$begin)*20.0 );
+            #glRotatef(90.0, 0.0, 0.0, 1.0);
             glScalef(0.08, 0.12, 0.12);
             glutStrokeString(GLUT_STROKE_MONO_ROMAN, $days[$di] );
         glPopMatrix();
@@ -189,7 +194,7 @@ sub display
     }
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
-    glColor3f(0.5, 0.7, 0.8);
+    glColor3f(0.6, 0.8, 1.0);
 
     #横轴
     for (  my $mins = 0.0; $mins <= 1440.0; $mins+=40.0 )
@@ -206,7 +211,7 @@ sub display
     }
 
     #竖轴
-    for ( my $y = 0.0; $y<300.0; $y+=15.0 )
+    for ( my $y = 0.0; $y<=300.0; $y+=15.0 )
     {
         glColor4f( @{$color_idx[int($y)]}{'R','G','B'}, 1.0 );
         glPushMatrix();
@@ -217,13 +222,28 @@ sub display
         glPopMatrix();
     }
 
-    #Z轴 日期
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    for ( my $z = 0.0; $z < 300.0; $z+=20.0 )
+    #当天的数据特征
+    my $min = 1000.0, $max = 0.0;
+    for my $t ( keys %{$hash->{$days[$begin]}} )
     {
-        #glColor4f( @{$color_idx[int($z)]}{'R','G','B'}, 1.0 );
-
+        if ($hash->{$days[$begin]}{$t}[col] < $min) { $min = $hash->{$days[$begin]}{$t}[col] }
+        if ($hash->{$days[$begin]}{$t}[col] > $max) { $max = $hash->{$days[$begin]}{$t}[col] }
     }
+    my $delta = $max - $min;
+    my ($yy, $mm, $dd) = split(/\D/, $days[$begin] );
+    glColor3f(1.0, 1.0, 1.0);
+    glPushMatrix();
+    glTranslatef(-80.0, 320.0, 0.0);
+    draw_string(
+        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
+            $yy, $mm, $dd, $max/100.0, $min/100.0, $delta/100.0)
+    );
+    glPopMatrix();
+
+    # glPushMatrix();
+    # glTranslatef(-80.0, 360.0, 0.0);
+    # draw_string("Github: vicyang");
+    # glPopMatrix();
 
     glPopMatrix();
     glutSwapBuffers();
@@ -244,7 +264,7 @@ sub init
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_SMOOTH);
-    glBlendFunc(GL_SRC_COLOR, GL_SRC_ALPHA);
+    glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_ALPHA);
     #glCullFace(GL_POINT);
 
     $tobj = gluNewTess();
@@ -282,8 +302,8 @@ sub hitkey
     my $k = lc(chr(shift));
     if ( $k eq 'q') { quit() }
 
-    if ( $k eq '-' ) { $begin-=1 }
-    if ( $k eq '=' ) { $begin+=1 }
+    if ( $k eq '-' and $begin > 0     ) { $begin-=1 }
+    if ( $k eq '=' and $begin < $#days) { $begin+=1 }
     # if ( $k eq '-' and ($begin > 0) ) { $begin-=1 }
     # if ( $k eq '=' and ($begin+10 < $#days) ) { $begin+=1 }
 
@@ -316,7 +336,7 @@ sub main
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |GLUT_DEPTH | GLUT_MULTISAMPLE );
     glutInitWindowSize($WIDTH, $HEIGHT);
     glutInitWindowPosition(100, 100);
-    our $WinID = glutCreateWindow("Display");
+    our $WinID = glutCreateWindow("ExchangeRates");
     &init();
     glutDisplayFunc(\&display);
     glutReshapeFunc(\&reshape);
