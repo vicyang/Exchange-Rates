@@ -32,10 +32,10 @@ BEGIN
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "../Data/2017.perldb.bin";
+    our $DB_File = "../Data/2016.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
-    our $begin = 0;                  #展示数据的起始索引
+    our $begin = $#days;                  #展示数据的起始索引
     sub col { 2 };
 
     our %month;
@@ -396,6 +396,7 @@ sub hitkey
     our $WinID;
     my $k = lc(chr(shift));
     if ( $k eq 'q') { quit() }
+    if ( $k eq 'r') { ($rx, $ry, $rz) = (0.0, 0.0,0.0)  }
 
     if ( $k eq '-') { $begin-=1 if $begin > 0 }
     if ( $k eq '=') { $begin+=1 if $begin < $#days }
@@ -407,12 +408,12 @@ sub hitkey
     if ( $k eq '5') { $mz+=10.0 }
     if ( $k eq '0') { $mz-=10.0 }
 
-    if ( $k eq 'w') { $rx+=10.0 }
-    if ( $k eq 's') { $rx-=10.0 }
-    if ( $k eq 'a') { $ry-=10.0 }
-    if ( $k eq 'd') { $ry+=10.0 }
-    if ( $k eq 'j') { $rz+=10.0 }
-    if ( $k eq 'k') { $rz-=10.0 }
+    if ( $k eq 'w') { $rx+=5.0 }
+    if ( $k eq 's') { $rx-=5.0 }
+    if ( $k eq 'a') { $ry-=5.0 }
+    if ( $k eq 'd') { $ry+=5.0 }
+    if ( $k eq 'j') { $rz+=5.0 }
+    if ( $k eq 'k') { $rz-=5.0 }
     if ( $k eq '[') { $zoom -= $zoom*0.1 }
     if ( $k eq ']') { $zoom += $zoom*0.1 }
 }
