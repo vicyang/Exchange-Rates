@@ -281,7 +281,6 @@ sub init
     glEnable(GL_LINE_SMOOTH);
     glEnable(GL_LINE_STIPPLE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    #glCullFace(GL_POINT);
 
     $tobj = gluNewTess();
     gluTessCallback($tobj, GLU_TESS_BEGIN,     'DEFAULT');
