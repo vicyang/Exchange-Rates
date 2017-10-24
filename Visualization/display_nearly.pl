@@ -30,16 +30,38 @@ BEGIN
     our $WIDTH  = 700;
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
-    sub col { 2 };
+    sub col { return 2 };
 
-    my $dt1 = DateTime->today();
-    my $dt2 = DateTime->today()->add( days => -5 );
-
-    our $to   = $dt1->strftime("%Y-%m-%d");
-    our $from = $dt2->strftime("%Y-%m-%d");
+    our $from = DateTime->today()->add( days => -5 );
+    our $to   = DateTime->today();
+    our $year = $to->strftime("%Y");
 
     our $hash = {};
-    ExchangeRates::main( $from, $to, \$hash );
+    #如果存在同年数据，先从中提取，修改在线获取的日期范围。
+    if ( -e "../Data/${year}.perldb.bin")
+    {
+        my $history;
+        $history = retrieve "../Data/${year}.perldb.bin";
+
+        my $iter = $from->clone();
+        my $date;
+        while ( $iter->ymd le $to->ymd )
+        {
+            $date = $iter->ymd(".");
+            if ( exists $history->{$date} ) 
+            {
+                print "$date\n";
+                $hash->{$date} = $history->{$date};
+            }
+            else { last; }
+            $iter->add( days => 1 );
+        }
+        $from = $iter;
+    }
+
+    our $nearly;
+    ExchangeRates::main( $from->ymd(), $to->ymd(), \$nearly );
+    grep { $hash->{$_} = $nearly->{$_}  } keys %$nearly;
 
     our @days = (sort keys %$hash);
     our $begin = 0;                  #展示数据的起始索引
@@ -63,15 +85,16 @@ BEGIN
     printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
 
     our $tobj;
-    our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 16);
-    our $dpi = 100;
-    our $face = Font::FreeType->new->face($font);
-    $face->set_char_size($size, $size, $dpi, $dpi);
 }
 
 INIT
 {
     our %TEXT;
+    our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 16);
+    our $dpi = 100;
+    our $face = Font::FreeType->new->face($font);
+    $face->set_char_size($size, $size, $dpi, $dpi);
+
     print "Loading contours ... ";
     my $code;
     my $char;
@@ -151,7 +174,7 @@ sub display
     glTranslatef($mx, $my, $mz);
     my $bright = 1.0;
 
-    for my $di ( $begin .. $begin+10 )
+    for my $di ( $begin-1 .. $begin+10 )
     {
         next if ($di < 0 or $di > $#days);
         $day = $days[$di];
@@ -164,7 +187,7 @@ sub display
 
         #glColor4f(1.0, 0.5, $di/$#days, 0.8 );
         my $t1, $x1, $y1, $last_x, $last_y;
-        $bright = $di == $begin ? 1.1 : 0.8*(1.0-($di-$begin)/12.0);
+        $bright = $di == $begin ? 1.2 : 0.8*(1.0-abs($di-$begin)/12.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
         {
@@ -175,7 +198,7 @@ sub display
 
             $color = $color_idx[int($y1)];
             glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
-            glVertex3f($x1, $y1, -($di-$begin)*20.0 );
+            glVertex3f($x1, $y1, -($di-$begin)*30.0 );
             $last_x = $x1;
             $last_y = $y1;
         }
