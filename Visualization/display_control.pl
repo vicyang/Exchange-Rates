@@ -62,6 +62,9 @@ BEGIN
             if ($month{$m}->{delta} != 0);
     }
 
+    $DELTA = $MAX - $MIN;
+    $PLY = 300.0/$DELTA;
+
     printf("Done.\n");
     printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
 
