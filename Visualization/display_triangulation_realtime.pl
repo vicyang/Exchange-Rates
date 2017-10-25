@@ -35,7 +35,7 @@ BEGIN
     our $DB_File = "../Data/2017.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
-    @days = @days[0..20];
+    @days = @days[0..50];
     our $begin = $#days/2;                  #展示数据的起始索引
     sub col { 2 };
 
@@ -84,6 +84,46 @@ BEGIN
         $daily{$d}->{delta} = $daily{$d}->{max} - $daily{$d}->{min};
         $daily{$d}->{ply}   = 300.0 / $daily{$d}->{delta} 
             if ($daily{$d}->{delta} != 0);
+    }
+
+    our $allvtx;
+    our $allclr;
+    for $di ( 0 .. $#days )
+    {
+        $m = substr($days[$di], 0, 7);
+
+        #作图
+        $MIN = $month{$m}->{min};
+        $MAX = $month{$m}->{max};
+        $PLY = $month{$m}->{ply};
+        $DELTA = $month{$m}->{delta};
+
+        my $bright = 1.0;
+        my $color;
+        my @points = ();
+
+        for my $tdi ( reverse $di .. $di+10 )
+        {
+            next if ( $tdi < 0 or $tdi > $#days );
+            $day = $days[$tdi];
+            #时间清零，避免受到上一次影响
+            @times = ();
+            #时间排序
+            @times = sort keys %{ $hash->{$day} };
+
+            my $t1, $x1, $y1;
+            $bright = $tdi == $di ? 2.0 : 0.9*(1.0-($tdi-$di)/10.0);
+            for my $ti ( 0 .. $#times )
+            {
+                $t1 = $times[$ti];
+                $t1 =~ /^0?(\d+):0?(\d+)/;
+                $x1 = ($1 * 60.0 + $2)/3.0;
+                $y1 = ($hash->{$day}{$t1}[col]-$MIN)*$PLY;
+                $color = $color_idx[int($y1)];
+                push @{$allvtx->{$di}{$tdi}},  [$x1, $y1, -($tdi-$di)*30.0];
+                push @{$allclr->{$di}{$tdi}},  [$color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0];
+            }
+        }
     }
 
     $DELTA = $MAX - $MIN;
@@ -195,8 +235,16 @@ sub display
     glRotatef($rz, 0.0, 0.0, 1.0);
     glTranslatef($mx, $my, $mz);
 
-    glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
-
+    for my $e ( values %{$allvtx->{$begin}} )
+    {
+        glBegin(GL_LINE_STRIP);
+        for my $f ( @$e )
+        {
+            glVertex3f( @$f );
+        }
+        glEnd();
+    }
+    
     glCallList( $text_mins );
     glCallList( $begin + 1 );  #CallList 从 1 开始
 
@@ -349,22 +397,16 @@ sub init
             #时间排序
             @times = sort keys %{ $hash->{$day} };
 
-            my $t1, $x1, $y1, $last_x;
+            my $t1, $x1, $y1;
             $bright = $tdi == $di ? 2.0 : 0.9*(1.0-($tdi-$di)/10.0);
-            glBegin(GL_LINE_STRIP);
             for my $ti ( 0 .. $#times )
             {
                 $t1 = $times[$ti];
                 $t1 =~ /^0?(\d+):0?(\d+)/;
                 $x1 = ($1 * 60.0 + $2)/3.0;
                 $y1 = ($hash->{$day}{$t1}[col]-$MIN)*$PLY;
-
-                $color = $color_idx[int($y1)];
-                glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
-                glVertex3f($x1, $y1, -($tdi-$di)*30.0 );
                 push @points, [ $x1, -($tdi-$di)*30.0, $y1 ];  #z, y switch
             }
-            glEnd();
         }
 
         glEnable(GL_LIGHTING);

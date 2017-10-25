@@ -3,6 +3,8 @@
     Auth: 523066680
     Date: 2017-10
     https://github.com/vicyang/Exchange-Rates
+
+    由于 DrawArrays 之前需要大量数组操作，导致比直接渲染更慢
 =cut
 
 use utf8;
@@ -32,10 +34,9 @@ BEGIN
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "../Data/2017.perldb.bin";
+    our $DB_File = "../Data/2016.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
-    @days = @days[0..20];
     our $begin = $#days/2;                  #展示数据的起始索引
     sub col { 2 };
 
@@ -97,6 +98,14 @@ BEGIN
     our $dpi = 100;
     our $face = Font::FreeType->new->face($font);
     $face->set_char_size($size, $size, $dpi, $dpi);
+
+    our $ele_n = 10000;
+    our $norms  = OpenGL::Array->new($ele_n, GL_FLOAT );
+    our $verts  = OpenGL::Array->new($ele_n, GL_FLOAT );
+    our $colors = OpenGL::Array->new($ele_n, GL_FLOAT );
+    our @verts;
+    our @colors;
+    our @norms;
 }
 
 INIT
@@ -124,14 +133,14 @@ INIT
         push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
     }
 
-    # fill_color( 20, 60, 1.0, 0.3, 0.3);
-    # fill_color(100,100, 1.0, 0.6, 0.0);
-    # fill_color(200,100, 0.2, 0.8, 0.2);
-    # fill_color(300,300, 0.2, 0.6, 1.0);
+    fill_color( 20, 60, 1.0, 0.3, 0.3);
+    fill_color(100,100, 1.0, 0.6, 0.0);
+    fill_color(200,100, 0.2, 0.8, 0.2);
+    fill_color(300,300, 0.2, 0.6, 1.0);
 
-    fill_color( 20,200, 1.0, 0.6, 0.2);
-    fill_color(150,200, 0.3, 1.0, 0.3);
-    fill_color(280,300, 0.2, 0.5, 1.0);
+    # fill_color( 20,200, 1.0, 0.6, 0.2);
+    # fill_color(150,200, 0.3, 1.0, 0.3);
+    # fill_color(280,300, 0.2, 0.5, 1.0);
 
     sub fill_color 
     {
@@ -182,7 +191,7 @@ sub display
     state ($min, $max, $delta, $ply);
 
     our ($hash, @days, $begin, $MIN, @color_idx);
-    my $day;
+    my $day, $m;
     my $hour, $time, $last;
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -195,7 +204,85 @@ sub display
     glRotatef($rz, 0.0, 0.0, 1.0);
     glTranslatef($mx, $my, $mz);
 
-    glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
+    #作图
+    $m = substr($days[$begin], 0, 7);
+    $MIN = $month{$m}->{min};
+    $MAX = $month{$m}->{max};
+    $PLY = $month{$m}->{ply};
+    $DELTA = $month{$m}->{delta};
+
+    my $bright = 1.0;
+    my $color;
+    my @points = ();
+    for my $di ( reverse $begin .. $begin+10 )
+    {
+        next if ( $di < 0 or $di > $#days );
+        $day = $days[$di];
+        #时间清零，避免受到上一次影响
+        @times = ();
+        #时间排序
+        @times = sort keys %{ $hash->{$day} };
+
+        my $t1, $x1, $y1, $last_x;
+        $bright = $di == $begin ? 2.0 : 0.9*(1.0-($di-$begin)/10.0);
+        glBegin(GL_LINE_STRIP);
+        for my $ti ( 0 .. $#times )
+        {
+            $t1 = $times[$ti];
+            $t1 =~ /^0?(\d+):0?(\d+)/;
+            $x1 = ($1 * 60.0 + $2)/3.0;
+            $y1 = ($hash->{$day}{$t1}[col]-$MIN)*$PLY;
+
+            $color = $color_idx[int($y1)];
+            glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
+            glVertex3f($x1, $y1, -($di-$begin)*30.0 );
+            push @points, [ $x1, -($di-$begin)*30.0, $y1 ];  #z, y switch
+        }
+        glEnd();
+    }
+
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnable(GL_LIGHTING);
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    my $tri;
+    my @tpa, @tpb, @norm;
+
+    @verts = ();
+    @colors = ();
+
+    $tri = triangulation( \@points );
+    for my $a ( @$tri ) 
+    {
+        for my $i ( 0 .. 2 )
+        {
+            $tpa[$i] = $a->[1][$i] - $a->[0][$i] ;
+            $tpb[$i] = $a->[2][$i] - $a->[0][$i] ;
+        }
+        normcrossprod( \@tpa, \@tpb, \@norm );
+        push @norms, @norm;
+        for my $b (@$a)
+        {
+            $bright = 1.0 - abs($b->[1])/400.0;
+            $color = $color_idx[int($b->[2])];
+            push @verts, @$b[0,2,1];
+            push @colors, $color->{R} * $bright, $color->{G} * $bright, $color->{B} * $bright, 0.5;
+        }
+    }
+
+    $verts  = OpenGL::Array->new_list( GL_FLOAT, @verts );
+    $colors = OpenGL::Array->new_list( GL_FLOAT, @colors );
+    $norms = OpenGL::Array->new_list( GL_FLOAT, @norms );
+
+    glNormalPointer_c(GL_FLOAT, 0, $norms->ptr);
+    glColorPointer_c( 4, GL_FLOAT, 0, $colors->ptr);
+    glVertexPointer_c(3, GL_FLOAT, 0, $verts->ptr);
+
+    glDrawArrays( GL_TRIANGLES, 0, ($#$tri+1)*3 );
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisable(GL_LIGHTING);
 
     glCallList( $text_mins );
     glCallList( $begin + 1 );  #CallList 从 1 开始
@@ -270,19 +357,6 @@ sub init
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
     glEnable(GL_COLOR_MATERIAL);
 
-    # my $light_position2 = OpenGL::Array->new( 4, GL_FLOAT);
-    # my $light_specular2 = OpenGL::Array->new( 4, GL_FLOAT);
-    # my $light_diffuse2  = OpenGL::Array->new( 4, GL_FLOAT);
-
-    # $light_diffuse2->assign(0, ( 1.0, 1.0, 1.0, 1.0 ) );
-    # $light_specular2->assign(0, ( 0.2, 0.2, 0.2, 1.0 ) );
-    # $light_position2->assign(0, ( 0.0, 0.0, 1.0, 0.0 ) );
-
-    # glLightfv_c(GL_LIGHT1, GL_POSITION, $light_position2->ptr);
-    # glLightfv_c(GL_LIGHT1, GL_DIFFUSE, $light_diffuse2->ptr);
-    # glLightfv_c(GL_LIGHT1, GL_SPECULAR, $light_specular2->ptr);
-    # glEnable(GL_LIGHT1);
-
     $tobj = gluNewTess();
     gluTessCallback($tobj, GLU_TESS_BEGIN,     'DEFAULT');
     gluTessCallback($tobj, GLU_TESS_END,       'DEFAULT');
@@ -292,7 +366,7 @@ sub init
     gluTessCallback($tobj, GLU_TESS_EDGE_FLAG, 'DEFAULT');
 
     #CallList
-    my $ta = time();
+    glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
     printf "Creating display list ... ";
     my ($yy, $mm, $dd);
     my ($y, $di, $m);
@@ -331,72 +405,9 @@ sub init
             glPopMatrix();
         }
 
-        #作图
-        $MIN = $month{$m}->{min};
-        $MAX = $month{$m}->{max};
-        $PLY = $month{$m}->{ply};
-        $DELTA = $month{$m}->{delta};
-
-        my $bright = 1.0;
-        my $color;
-        my @points = ();
-        for my $tdi ( reverse $di .. $di+10 )
-        {
-            next if ( $tdi < 0 or $tdi > $#days );
-            $day = $days[$tdi];
-            #时间清零，避免受到上一次影响
-            @times = ();
-            #时间排序
-            @times = sort keys %{ $hash->{$day} };
-
-            my $t1, $x1, $y1, $last_x;
-            $bright = $tdi == $di ? 2.0 : 0.9*(1.0-($tdi-$di)/10.0);
-            glBegin(GL_LINE_STRIP);
-            for my $ti ( 0 .. $#times )
-            {
-                $t1 = $times[$ti];
-                $t1 =~ /^0?(\d+):0?(\d+)/;
-                $x1 = ($1 * 60.0 + $2)/3.0;
-                $y1 = ($hash->{$day}{$t1}[col]-$MIN)*$PLY;
-
-                $color = $color_idx[int($y1)];
-                glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
-                glVertex3f($x1, $y1, -($tdi-$di)*30.0 );
-                push @points, [ $x1, -($tdi-$di)*30.0, $y1 ];  #z, y switch
-            }
-            glEnd();
-        }
-
-        glEnable(GL_LIGHTING);
-        glColor4f(1.0, 1.0, 1.0, 1.0);
-        my $tri;
-        my @tpa, @tpb, @norm;
-        $tri = triangulation( \@points );
-        glBegin(GL_TRIANGLES);
-        for my $a ( @$tri ) 
-        {
-            for my $i ( 0 .. 2 )
-            {
-                $tpa[$i] = $a->[1][$i] - $a->[0][$i] ;
-                $tpb[$i] = $a->[2][$i] - $a->[0][$i] ;
-            }
-            normcrossprod( \@tpa, \@tpb, \@norm );
-            glNormal3f( @norm );
-            for my $b ( @$a ) 
-            {
-                $bright = 1.0 - abs($b->[1])/400.0;
-                $color = $color_idx[int($b->[2])];
-                glColor4f( $color->{R} * $bright, $color->{G} * $bright, $color->{B} * $bright, 0.5 );
-                glVertex3f( @$b[0,2,1] );
-            }
-        }
-        glEnd();
-        glDisable(GL_LIGHTING);
-
-
         glEndList ();
     }
-    printf "Done. Time used: %.3f\n", time()-$ta;
+    printf "Done\n";
 
     $text_mins = $#days + 1 + 1;
     #横轴
