@@ -11,7 +11,7 @@ use autodie;
 use Storable;
 use feature 'state';
 use Font::FreeType;
-use Time::HiRes qw/sleep time/;
+use Time::HiRes qw/sleep time usleep/;
 use Time::Local;
 use File::Slurp;
 use Data::Dumper;
@@ -32,9 +32,10 @@ BEGIN
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "../Data/2016.perldb.bin";
+    our $DB_File = "../Data/2017.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
+    @days = @days[0..20];
     our $begin = $#days/2;                  #展示数据的起始索引
     sub col { 2 };
 
@@ -216,10 +217,10 @@ sub idle
     display();
 
     $delta = time()-$t1;
-    $left = $delay - $delta;
-    sleep $delay if $left > 0.0;
+    $left = sprintf "%.3f", $delay - $delta;
+    sleep $left if $left > 0.0;
 
-    printf "%.4f %.4f\n", time()-$t1, $delta;
+    printf "%.4f %.4f %.4f\n", time()-$t1, $delta, $left;
 }
 
 sub init
