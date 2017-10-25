@@ -184,7 +184,7 @@ sub display
     glTranslatef($mx, $my, $mz);
     my $bright = 1.0;
 
-    for my $di ( $begin-1 .. $begin+10 )
+    for my $di ( $begin .. $begin+10 )
     {
         next if ($di < 0 or $di > $#days);
         $day = $days[$di];
