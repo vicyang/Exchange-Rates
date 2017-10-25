@@ -4,7 +4,7 @@
 
 * 2017-10-23 tags charts_v0.6  
 
-* tags Charts_v0.9
+* 2017-10-23 tags Charts_v0.9  
   添加立体图展示：display_triangulation.pl
 
 * 相关
