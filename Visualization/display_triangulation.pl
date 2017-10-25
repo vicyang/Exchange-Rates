@@ -11,7 +11,7 @@ use autodie;
 use Storable;
 use feature 'state';
 use Font::FreeType;
-use Time::HiRes qw/sleep/;
+use Time::HiRes qw/sleep time/;
 use Time::Local;
 use File::Slurp;
 use Data::Dumper;
@@ -39,8 +39,10 @@ BEGIN
     sub col { 2 };
 
     our %month;
+    our %daily;
     our ($MIN, $MAX) = (1000.0, 0.0);
     my $m;     #month
+    my $d;     #day
     my $last;  #last key(time) in one day
     for my $d (@days)
     {
@@ -50,23 +52,36 @@ BEGIN
             $month{$m} = { 'min' => 1000.0, 'max' => 0.0, 'delta' => undef, 'ply' => 1.0 };
         }
 
+        if ( not exists $daily{$d} ) {
+            $daily{$d} = { 'min' => 1000.0, 'max' => 0.0, 'delta' => undef, 'ply' => 1.0 };
+        }
+
         for my $t ( sort keys %{$hash->{$d}} )
         {
             if ($hash->{$d}{$t}[col] < $MIN) { $MIN = $hash->{$d}{$t}[col] }
             if ($hash->{$d}{$t}[col] > $MAX) { $MAX = $hash->{$d}{$t}[col] }
             if ($hash->{$d}{$t}[col] < $month{$m}->{min}) { $month{$m}->{min} = $hash->{$d}{$t}[col] }
             if ($hash->{$d}{$t}[col] > $month{$m}->{max}) { $month{$m}->{max} = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] < $daily{$d}->{min}) { $daily{$d}->{min} = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] > $daily{$d}->{max}) { $daily{$d}->{max} = $hash->{$d}{$t}[col] }
             $last = $t;
         }
         #如果没有22点以后的数据，按最末的数据填补
         $hash->{$d}{'23:55:00'} = $hash->{$d}{$last} if ( $last le '22:00:00');
     }
 
-    for my $m ( keys %month )
+    for $m ( keys %month )
     {
         $month{$m}->{delta} = $month{$m}->{max} - $month{$m}->{min};
         $month{$m}->{ply}   = 300.0 / $month{$m}->{delta} 
             if ($month{$m}->{delta} != 0);
+    }
+
+    for $d ( keys %daily )
+    {
+        $daily{$d}->{delta} = $daily{$d}->{max} - $daily{$d}->{min};
+        $daily{$d}->{ply}   = 300.0 / $daily{$d}->{delta} 
+            if ($daily{$d}->{delta} != 0);
     }
 
     $DELTA = $MAX - $MIN;
@@ -194,10 +209,8 @@ sub display
         $day = $days[$di];
         #时间清零，避免受到上一次影响
         @times = ();
-        @rates = ();
         #时间排序
         @times = sort keys %{ $hash->{$day} };
-        @rates = map { $hash->{$day}{$_}[col] } @times;
 
         my $t1, $x1, $y1, $last_x;
         $bright = $di == $begin ? 2.0 : 0.9*(1.0-($di-$begin)/10.0);
@@ -217,30 +230,30 @@ sub display
         glEnd();
     }
 
-    glEnable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    my $tri;
-    my @tpa, @tpb, @norm;
-    $tri = triangulation( \@points );
-    glBegin(GL_TRIANGLES);
-    for my $a ( @$tri ) 
-    {
-        for my $i ( 0 .. 2 )
-        {
-            $tpa[$i] = $a->[1][$i] - $a->[0][$i] ;
-            $tpb[$i] = $a->[2][$i] - $a->[0][$i] ;
-        }
-        normcrossprod( \@tpa, \@tpb, \@norm );
-        glNormal3f( @norm );
-        for my $b ( @$a ) 
-        {
-            $bright = 1.0 - abs($b->[1])/400.0;
-            $color = $color_idx[int($b->[2])];
-            glColor4f( $color->{R} * $bright, $color->{G} * $bright, $color->{B} * $bright, 0.5 );
-            glVertex3f( @$b[0,2,1] );
-        }
-    }
-    glEnd();
+    # glEnable(GL_LIGHTING);
+    # glColor4f(1.0, 1.0, 1.0, 1.0);
+    # my $tri;
+    # my @tpa, @tpb, @norm;
+    # $tri = triangulation( \@points );
+    # glBegin(GL_TRIANGLES);
+    # for my $a ( @$tri ) 
+    # {
+    #     for my $i ( 0 .. 2 )
+    #     {
+    #         $tpa[$i] = $a->[1][$i] - $a->[0][$i] ;
+    #         $tpb[$i] = $a->[2][$i] - $a->[0][$i] ;
+    #     }
+    #     normcrossprod( \@tpa, \@tpb, \@norm );
+    #     glNormal3f( @norm );
+    #     for my $b ( @$a ) 
+    #     {
+    #         $bright = 1.0 - abs($b->[1])/400.0;
+    #         $color = $color_idx[int($b->[2])];
+    #         glColor4f( $color->{R} * $bright, $color->{G} * $bright, $color->{B} * $bright, 0.5 );
+    #         glVertex3f( @$b[0,2,1] );
+    #     }
+    # }
+    # glEnd();
     glDisable(GL_LIGHTING);
 
     glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
@@ -248,7 +261,7 @@ sub display
     #横轴
     glLineWidth(1.0);
     glColor3f(1.0, 1.0, 1.0);
-    for (  my $mins = 0.0; $mins <= 1440.0; $mins+=40.0 )
+    for ( my $mins = 0.0; $mins <= 1440.0; $mins+=40.0 )
     {
         $time = sprintf "%02d:%02d", int($mins/60), $mins % 60;
         glPushMatrix();
@@ -271,21 +284,15 @@ sub display
         glPopMatrix();
     }
 
-    #当天的数据特征
-    my $min = 1000.0, $max = 0.0;
-    for my $t ( keys %{$hash->{$days[$begin]}} )
-    {
-        if ($hash->{$days[$begin]}{$t}[col] < $min) { $min = $hash->{$days[$begin]}{$t}[col] }
-        if ($hash->{$days[$begin]}{$t}[col] > $max) { $max = $hash->{$days[$begin]}{$t}[col] }
-    }
-    my $delta = $max - $min;
-    my ($yy, $mm, $dd) = split(/\D/, $days[$begin] );
+    #当天的数据特征 （此处消耗0.01秒）
+    $day = $days[$begin];
+    my ($yy, $mm, $dd) = split(/\D/, $day );
     glColor3f(1.0, 1.0, 1.0);
     glPushMatrix();
     glTranslatef(-80.0, 320.0, 0.0);
     draw_string(
         sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
-            $yy, $mm, $dd, $max/100.0, $min/100.0, $delta/100.0)
+            $yy, $mm, $dd, $daily{$day}->{max}, $daily{$day}->{min}, $daily{$day}->{delta} )
     );
     glPopMatrix();
 
@@ -304,8 +311,18 @@ sub display
 
 sub idle 
 {
-    sleep 0.05;
-    glutPostRedisplay();
+    state $t1;
+    state $delta;
+    state $delay;
+    $t1 = time();
+    #glutPostRedisplay();
+    display();
+
+    $delta = time()-$t1;
+    $delay = $delta >= 0.1 ? 0.0 : 0.1 - $delta; 
+    sleep $delay;
+
+    printf "%.4f %.4f\n", time()-$t1, $delta;
 }
 
 sub init
