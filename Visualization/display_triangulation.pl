@@ -35,7 +35,7 @@ BEGIN
     our $DB_File = "../Data/2016.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
-    our $begin = $#days;                  #展示数据的起始索引
+    our $begin = $#days/2;                  #展示数据的起始索引
     sub col { 2 };
 
     our %month;
@@ -245,8 +245,6 @@ sub display
         $time = sprintf "%02d:%02d", int($mins/60), $mins % 60;
         glPushMatrix();
             glTranslatef($mins/3.0, -80.0, 0.0);
-            #glRotatef(90.0, 1.0, 0.0, 0.0);
-            #glRotatef(180.0, 0.0, 1.0, 0.0);
             glRotatef(90.0, 0.0, 0.0, 1.0);
             glScalef(0.1, 0.08, 0.1);
             glutStrokeString(GLUT_STROKE_MONO_ROMAN, $time );
