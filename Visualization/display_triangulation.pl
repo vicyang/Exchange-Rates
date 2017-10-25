@@ -40,20 +40,26 @@ BEGIN
 
     our %month;
     our ($MIN, $MAX) = (1000.0, 0.0);
-    my $m;
+    my $m;     #month
+    my $last;  #last key(time) in one day
     for my $d (@days)
     {
+        $this = $hash->{$d};
         $m = substr($d, 0, 7);  #年+月作为 key
-        if ( not exists $month{$m} ) { 
+        if ( not exists $month{$m} ) {
             $month{$m} = { 'min' => 1000.0, 'max' => 0.0, 'delta' => undef, 'ply' => 1.0 };
         }
-        for my $t ( keys %{$hash->{$d}} )
+
+        for my $t ( sort keys %{$hash->{$d}} )
         {
             if ($hash->{$d}{$t}[col] < $MIN) { $MIN = $hash->{$d}{$t}[col] }
             if ($hash->{$d}{$t}[col] > $MAX) { $MAX = $hash->{$d}{$t}[col] }
             if ($hash->{$d}{$t}[col] < $month{$m}->{min}) { $month{$m}->{min} = $hash->{$d}{$t}[col] }
             if ($hash->{$d}{$t}[col] > $month{$m}->{max}) { $month{$m}->{max} = $hash->{$d}{$t}[col] }
+            $last = $t;
         }
+        #如果没有22点以后的数据，按最末的数据填补
+        $hash->{$d}{'23:55:00'} = $hash->{$d}{$last} if ( $last le '22:00:00');
     }
 
     for my $m ( keys %month )
@@ -206,7 +212,7 @@ sub display
             $color = $color_idx[int($y1)];
             glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
             glVertex3f($x1, $y1, -($di-$begin)*30.0 );
-            push @points, [ $x1, -($di-$begin)*30.0, $y1 ];
+            push @points, [ $x1, -($di-$begin)*30.0, $y1 ];  #z, y switch
         }
         glEnd();
     }
@@ -226,9 +232,11 @@ sub display
         }
         normcrossprod( \@tpa, \@tpb, \@norm );
         glNormal3f( @norm );
-        for my $b ( @$a ) {
+        for my $b ( @$a ) 
+        {
+            $bright = 1.0 - abs($b->[1])/400.0;
             $color = $color_idx[int($b->[2])];
-            glColor4f( $color->{R}, $color->{G}, $color->{B}, 0.5 );
+            glColor4f( $color->{R} * $bright, $color->{G} * $bright, $color->{B} * $bright, 0.5 );
             glVertex3f( @$b[0,2,1] );
         }
     }
