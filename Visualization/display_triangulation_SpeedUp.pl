@@ -4,7 +4,7 @@
     Date: 2017-10
     https://github.com/vicyang/Exchange-Rates
 =cut
-
+use Try::Tiny;
 use utf8;
 use Encode;
 use autodie;
@@ -32,11 +32,11 @@ BEGIN
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "../Data/2016.perldb.bin";
+    our $DB_File = "../Data/2015.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
     #@days = @days[0..100];
-    our $begin = $#days/2;                  #展示数据的起始索引
+    our $begin = int($#days/2);                  #展示数据的起始索引
     our $col = 2;
 
     our $text_mins;
@@ -257,10 +257,11 @@ sub display
     glEnable(GL_LIGHTING);
     my $tri, i, a, b;
     my @tpa, @tpb, @norm;
-    $tri = triangulation( $allpts->{$begin} );
+    if ( $#{$allpts->{$begin}} >= 2 ) {
+        $tri = triangulation( $allpts->{$begin} );
+    }
     glBegin(GL_TRIANGLES);
-
-    for $a ( @$tri ) 
+    for $a ( @$tri )
     {
         for $i ( 0, 1, 2 )
         {

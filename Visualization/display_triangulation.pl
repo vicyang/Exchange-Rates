@@ -36,7 +36,7 @@ BEGIN
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
     @days = @days[0..100];
-    our $begin = $#days/2;                  #展示数据的起始索引
+    our $begin = int($#days/2);                  #展示数据的起始索引
     sub col { 2 };
 
     our $text_mins;

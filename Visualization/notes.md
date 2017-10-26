@@ -43,5 +43,32 @@
   目标是让追加时差+渲染耗时 = 0.1秒，但实际在0.098左右  
   将 $left 保留三位小数能够得到相对准确的结果。  
   
-  `$left = sprintf "%.3f", $delay - $delta;`
+  `$left = sprintf "%.3f", $delay - $delta;`  
+
+* ### Can't use an undefined value as an ARRAY reference at Delaunay.pm line  
+  display_triangulation_SpeedUp.pl   
+  ```perl
+  $DB_File = "../Data/2007.perldb.bin"; 
+  $begin = $#days/2;  
+  $tri = triangulation( $allpts->{$begin} );
+  ```
+  2007-2012 的数据会有这种情况。  
+  原因，采用哈希的时候，键值并不会自动转为整数，$#days为奇数的时候，  
+  例如 365/2 = 182.5，由于查询不到182.5对应的值，所以提示 undefined value  
+
+* ### Error:  Input must have at least three input vertices.  
+  测试代码：
+  ```perl
+  for my $k ( keys %$allpts  ) {
+      triangulation( $allpts->{$k} );
+  }
+  ```
+
+  原因，2007年-2012年，最后一天的数据是次年的数据，只有一项  
+  > '2007.12.31' => {
+  > '00:00:07' => ['729','723.16','731.92',undef,'730.46','730.46']},
+  > '2008.01.01' => {
+  > '00:00:08' => ['729','723.16','731.92',undef,'730.46','730.46']}};
+  
+  将2008年01月的数据导入 triangulation 函数的时候由于只有一项，引发错误。
 
