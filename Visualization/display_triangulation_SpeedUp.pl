@@ -32,12 +32,12 @@ BEGIN
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "../Data/2015.perldb.bin";
+    our $DB_File = "../Data/2016.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
     #@days = @days[0..100];
     our $begin = $#days/2;                  #展示数据的起始索引
-    sub col { 2 };
+    our $col = 2;
 
     our $text_mins;
     our %month;
@@ -60,12 +60,12 @@ BEGIN
 
         for my $t ( sort keys %{$hash->{$d}} )
         {
-            if ($hash->{$d}{$t}[col] < $MIN) { $MIN = $hash->{$d}{$t}[col] }
-            if ($hash->{$d}{$t}[col] > $MAX) { $MAX = $hash->{$d}{$t}[col] }
-            if ($hash->{$d}{$t}[col] < $month{$m}->{min}) { $month{$m}->{min} = $hash->{$d}{$t}[col] }
-            if ($hash->{$d}{$t}[col] > $month{$m}->{max}) { $month{$m}->{max} = $hash->{$d}{$t}[col] }
-            if ($hash->{$d}{$t}[col] < $daily{$d}->{min}) { $daily{$d}->{min} = $hash->{$d}{$t}[col] }
-            if ($hash->{$d}{$t}[col] > $daily{$d}->{max}) { $daily{$d}->{max} = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[$col] < $MIN) { $MIN = $hash->{$d}{$t}[$col] }
+            if ($hash->{$d}{$t}[$col] > $MAX) { $MAX = $hash->{$d}{$t}[$col] }
+            if ($hash->{$d}{$t}[$col] < $month{$m}->{min}) { $month{$m}->{min} = $hash->{$d}{$t}[$col] }
+            if ($hash->{$d}{$t}[$col] > $month{$m}->{max}) { $month{$m}->{max} = $hash->{$d}{$t}[$col] }
+            if ($hash->{$d}{$t}[$col] < $daily{$d}->{min}) { $daily{$d}->{min} = $hash->{$d}{$t}[$col] }
+            if ($hash->{$d}{$t}[$col] > $daily{$d}->{max}) { $daily{$d}->{max} = $hash->{$d}{$t}[$col] }
             $last = $t;
         }
         #如果没有22点以后的数据，按最末的数据填补
@@ -162,18 +162,19 @@ INIT
             #时间排序
             @times = sort keys %{ $hash->{$day} };
 
-            my $t1, $x1, $y1;
+            my $t, $x, $y, $z;
             $bright = $tdi == $di ? 2.0 : 0.9*(1.0-($tdi-$di)/10.0);
             for $ti ( 0 .. $#times )
             {
-                $t1 = $times[$ti];
-                $t1 =~ /^0?(\d+):0?(\d+)/;
-                $x1 = ($1 * 60.0 + $2)/3.0;
-                $y1 = ($hash->{$day}{$t1}[col]-$MIN)*$PLY;
-                $color = $color_idx[int($y1)];
-                push @{$allvtx->{$di}{$tdi}},  [$x1, $y1, -($tdi-$di)*30.0];
+                $t = $times[$ti];
+                $t =~ /^0?(\d+):0?(\d+)/;
+                $x = ($1 * 60.0 + $2)/3.0;
+                $y = ($hash->{$day}{$t}[$col]-$MIN)*$PLY;
+                $z = -($tdi-$di)*30.0;
+                $color = $color_idx[int($y)];
+                push @{$allvtx->{$di}{$tdi}},  [$x, $y, $z];
                 push @{$allclr->{$di}{$tdi}},  [$color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0];
-                push @{$allpts->{$di}},  [$x1, -($tdi-$di)*30.0, $y1];
+                push @{$allpts->{$di}},  [$x, $z, $y];
             }
         }
     }
@@ -398,7 +399,7 @@ sub init
     my $ta = time();
     printf "Creating display list ... ";
 
-    #字
+    ' 字 ';
     my $n = 1;
     our %TEXTID;
     our $CLOCK;
@@ -411,7 +412,7 @@ sub init
         $n++;
     }
 
-    #横轴
+    ' 横轴 ';
     $CLOCK = $n;
     glNewList ( $n, GL_COMPILE );
     glColor3f(1.0, 1.0, 1.0);
