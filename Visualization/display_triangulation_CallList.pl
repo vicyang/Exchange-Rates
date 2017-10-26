@@ -11,7 +11,7 @@ use autodie;
 use Storable;
 use feature 'state';
 use Font::FreeType;
-use Time::HiRes qw/sleep time/;
+use Time::HiRes qw/sleep time usleep/;
 use Time::Local;
 use File::Slurp;
 use Data::Dumper;
@@ -26,8 +26,6 @@ STDOUT->autoflush(1);
 
 BEGIN
 {
-    use IO::Handle;
-    STDOUT->autoflush(1);
     our $WinID;
     our $HEIGHT = 500;
     our $WIDTH  = 700;
@@ -37,13 +35,16 @@ BEGIN
     our $DB_File = "../Data/2016.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
-    our $begin = $#days/2;                  #展示数据的起始索引
-    our $col = 2;
+    @days = @days[0..100];
+    our $begin = int($#days/2);                  #展示数据的起始索引
+    sub col { 2 };
 
-    our %daily;
+    our $text_mins;
     our %month;
+    our %daily;
     our ($MIN, $MAX) = (1000.0, 0.0);
     my $m;     #month
+    my $d;     #day
     my $last;  #last key(time) in one day
     for my $d (@days)
     {
@@ -52,28 +53,37 @@ BEGIN
         if ( not exists $month{$m} ) {
             $month{$m} = { 'min' => 1000.0, 'max' => 0.0, 'delta' => undef, 'ply' => 1.0 };
         }
+
         if ( not exists $daily{$d} ) {
             $daily{$d} = { 'min' => 1000.0, 'max' => 0.0, 'delta' => undef, 'ply' => 1.0 };
         }
+
         for my $t ( sort keys %{$hash->{$d}} )
         {
-            if ($hash->{$d}{$t}[$col] < $MIN) { $MIN = $hash->{$d}{$t}[$col] }
-            if ($hash->{$d}{$t}[$col] > $MAX) { $MAX = $hash->{$d}{$t}[$col] }
-            if ($hash->{$d}{$t}[$col] < $month{$m}->{min}) { $month{$m}->{min} = $hash->{$d}{$t}[$col] }
-            if ($hash->{$d}{$t}[$col] > $month{$m}->{max}) { $month{$m}->{max} = $hash->{$d}{$t}[$col] }
-            if ($hash->{$d}{$t}[$col] < $daily{$d}->{min}) { $daily{$d}->{min} = $hash->{$d}{$t}[$col] }
-            if ($hash->{$d}{$t}[$col] > $daily{$d}->{max}) { $daily{$d}->{max} = $hash->{$d}{$t}[$col] }
+            if ($hash->{$d}{$t}[col] < $MIN) { $MIN = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] > $MAX) { $MAX = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] < $month{$m}->{min}) { $month{$m}->{min} = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] > $month{$m}->{max}) { $month{$m}->{max} = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] < $daily{$d}->{min}) { $daily{$d}->{min} = $hash->{$d}{$t}[col] }
+            if ($hash->{$d}{$t}[col] > $daily{$d}->{max}) { $daily{$d}->{max} = $hash->{$d}{$t}[col] }
             $last = $t;
         }
         #如果没有22点以后的数据，按最末的数据填补
         $hash->{$d}{'23:55:00'} = $hash->{$d}{$last} if ( $last le '22:00:00');
     }
 
-    for my $m ( keys %month )
+    for $m ( keys %month )
     {
         $month{$m}->{delta} = $month{$m}->{max} - $month{$m}->{min};
         $month{$m}->{ply}   = 300.0 / $month{$m}->{delta} 
             if ($month{$m}->{delta} != 0);
+    }
+
+    for $d ( keys %daily )
+    {
+        $daily{$d}->{delta} = $daily{$d}->{max} - $daily{$d}->{min};
+        $daily{$d}->{ply}   = 300.0 / $daily{$d}->{delta} 
+            if ($daily{$d}->{delta} != 0);
     }
 
     $DELTA = $MAX - $MIN;
@@ -92,8 +102,6 @@ BEGIN
 INIT
 {
     our %TEXT;
-    our %TEXTID;
-    our $CLOCK;
     print "Loading contours ... ";
     my $code;
     my $char;
@@ -116,14 +124,14 @@ INIT
         push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
     }
 
-    fill_color( 20, 60, 1.0, 0.3, 0.3);
-    fill_color(100,100, 1.0, 0.6, 0.0);
-    fill_color(200,100, 0.2, 0.8, 0.2);
-    fill_color(300,300, 0.2, 0.6, 1.0);
+    # fill_color( 20, 60, 1.0, 0.3, 0.3);
+    # fill_color(100,100, 1.0, 0.6, 0.0);
+    # fill_color(200,100, 0.2, 0.8, 0.2);
+    # fill_color(300,300, 0.2, 0.6, 1.0);
 
-    # fill_color( 20,200, 1.0, 0.6, 0.2);
-    # fill_color(150,200, 0.3, 1.0, 0.3);
-    # fill_color(280,300, 0.2, 0.5, 1.0);
+    fill_color( 20,200, 1.0, 0.6, 0.2);
+    fill_color(150,200, 0.3, 1.0, 0.3);
+    fill_color(280,300, 0.2, 0.5, 1.0);
 
     sub fill_color 
     {
@@ -172,7 +180,6 @@ sub display
     state @times;
     state $i = 0;
     state ($min, $max, $delta, $ply);
-    state ($mm, $yy, $dd);
 
     our ($hash, @days, $begin, $MIN, @color_idx);
     my $day;
@@ -188,100 +195,10 @@ sub display
     glRotatef($rz, 0.0, 0.0, 1.0);
     glTranslatef($mx, $my, $mz);
 
-    my $m = substr($days[$begin], 0, 7);
-    $MIN = $month{$m}->{min};
-    $MAX = $month{$m}->{max};
-    $PLY = $month{$m}->{ply};
-    $DELTA = $month{$m}->{delta};
+    glutStrokeHeight(GLUT_STROKE_MONO_ROMAN);
 
-    my $bright = 1.0;
-    my $color;
-    my @points = ();
-
-    for my $di ( reverse $begin .. $begin+10 )
-    {
-        next if ( $di < 0 or $di > $#days );
-        $day = $days[$di];
-        #时间清零，避免受到上一次影响
-        @times = ();
-        @rates = ();
-        #时间排序
-        @times = sort keys %{ $hash->{$day} };
-        @rates = map { $hash->{$day}{$_}[$col] } @times;
-
-        my $t1, $x1, $y1, $last_x;
-        $bright = $di == $begin ? 2.0 : 0.9*(1.0-($di-$begin)/10.0);
-        glBegin(GL_LINE_STRIP);
-        for my $ti ( 0 .. $#times )
-        {
-            $t1 = $times[$ti];
-            $t1 =~ /^0?(\d+):0?(\d+)/;
-            $x1 = ($1 * 60.0 + $2)/3.0;
-            $y1 = ($hash->{$day}{$t1}[$col]-$MIN)*$PLY;
-
-            $color = $color_idx[int($y1)];
-            glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
-            glVertex3f($x1, $y1, -($di-$begin)*30.0 );
-            push @points, [ $x1, -($di-$begin)*30.0, $y1 ];  #z, y switch
-        }
-        glEnd();
-    }
-
-    glEnable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    my $tri;
-    my @tpa, @tpb, @norm;
-    $tri = triangulation( \@points );
-    glBegin(GL_TRIANGLES);
-    for my $a ( @$tri ) 
-    {
-        for my $i ( 0 .. 2 )
-        {
-            $tpa[$i] = $a->[1][$i] - $a->[0][$i] ;
-            $tpb[$i] = $a->[2][$i] - $a->[0][$i] ;
-        }
-        normcrossprod( \@tpa, \@tpb, \@norm );
-        glNormal3f( @norm );
-        for my $b ( @$a ) 
-        {
-            $bright = 1.0 - abs($b->[1])/400.0;
-            $color = $color_idx[int($b->[2])];
-            glColor4f( $color->{R} * $bright, $color->{G} * $bright, $color->{B} * $bright, 0.5 );
-            glVertex3f( @$b[0,2,1] );
-        }
-    }
-    glEnd();
-    glDisable(GL_LIGHTING);
-
-    ' 汇率, Y轴, 按月份更新，$key = yyyy.mm ';
-    for ( my $y = 0.0; $y<=300.0; $y+=15.0 )
-    {
-        glColor4f( @{$color_idx[int($y)]}{'R','G','B'}, 1.0 );
-        glPushMatrix();
-            glTranslatef(-80.0, $y, 0.0);
-            glScalef(0.1, 0.1, 0.1);
-            glutStrokeString(GLUT_STROKE_MONO_ROMAN, 
-                sprintf "%.3f", ( $DELTA *$y/300.0 + $MIN)/100.0 );
-        glPopMatrix();
-    }
-
-    ' 时间轴 ';
-    glCallList($CLOCK);
-
-    ' 标题 ';
-    ($yy, $mm, $dd) = split(/\D/, $days[$begin] );
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glPushMatrix();
-    glTranslatef(-80.0, 320.0, 0.0);
-    draw_string(
-        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
-            $yy, $mm, $dd, 
-            $daily{$days[$begin]}->{max}/100.0, 
-            $daily{$days[$begin]}->{min}/100.0, 
-            $daily{$days[$begin]}->{delta}/100.0
-        )
-    );
-    glPopMatrix();
+    glCallList( $text_mins );
+    glCallList( $begin + 1 );  #CallList 从 1 开始
 
     glPopMatrix();
     glutSwapBuffers();
@@ -291,7 +208,7 @@ sub idle
 {
     state $t1;
     state $delta;
-    state $delay = 0.065;
+    state $delay = 0.05;
     state $left;
 
     $t1 = time();
@@ -353,6 +270,19 @@ sub init
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
     glEnable(GL_COLOR_MATERIAL);
 
+    # my $light_position2 = OpenGL::Array->new( 4, GL_FLOAT);
+    # my $light_specular2 = OpenGL::Array->new( 4, GL_FLOAT);
+    # my $light_diffuse2  = OpenGL::Array->new( 4, GL_FLOAT);
+
+    # $light_diffuse2->assign(0, ( 1.0, 1.0, 1.0, 1.0 ) );
+    # $light_specular2->assign(0, ( 0.2, 0.2, 0.2, 1.0 ) );
+    # $light_position2->assign(0, ( 0.0, 0.0, 1.0, 0.0 ) );
+
+    # glLightfv_c(GL_LIGHT1, GL_POSITION, $light_position2->ptr);
+    # glLightfv_c(GL_LIGHT1, GL_DIFFUSE, $light_diffuse2->ptr);
+    # glLightfv_c(GL_LIGHT1, GL_SPECULAR, $light_specular2->ptr);
+    # glEnable(GL_LIGHT1);
+
     $tobj = gluNewTess();
     gluTessCallback($tobj, GLU_TESS_BEGIN,     'DEFAULT');
     gluTessCallback($tobj, GLU_TESS_END,       'DEFAULT');
@@ -361,27 +291,116 @@ sub init
     gluTessCallback($tobj, GLU_TESS_ERROR,     'DEFAULT');
     gluTessCallback($tobj, GLU_TESS_EDGE_FLAG, 'DEFAULT');
 
-
     #CallList
     my $ta = time();
     printf "Creating display list ... ";
-
-    ' 字 ';
-    my $n = 1;
-    our %TEXTID;
-    our $CLOCK;
-    for my $c ( keys %TEXT )
+    my ($yy, $mm, $dd);
+    my ($y, $di, $m);
+    for $di ( 0 .. $#days )
     {
-        glNewList ( $n, GL_COMPILE );
-        draw_character($c);
-        glEndList();
-        $TEXTID{$c} = $n;
-        $n++;
-    }
+        glNewList ( $di+1, GL_COMPILE );
+        $day = $days[$di];
+        ($yy, $mm, $dd) = split(/\D/, $day );
 
-    ' 横轴 ';
-    $CLOCK = $n;
-    glNewList ( $n, GL_COMPILE );
+        #标题
+        glColor3f(1.0, 1.0, 1.0);
+        glPushMatrix();
+        glTranslatef(-80.0, 320.0, 0.0);
+        draw_string(
+            sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
+                $yy, $mm, $dd, 
+                $daily{$day}->{max}/100.0, 
+                $daily{$day}->{min}/100.0, 
+                $daily{$day}->{delta}/100.0
+            )
+        );
+        glPopMatrix();
+
+        #Y轴，按月份更新，month key = yyyy.mm
+        $m = substr($days[$di], 0, 7);
+        for ( $y = 0.0; $y<=300.0; $y+=15.0 )
+        {
+            glColor4f( @{$color_idx[int($y)]}{'R','G','B'}, 1.0 );
+            glPushMatrix();
+            glTranslatef(-80.0, $y, 0.0);
+            glScalef(0.1, 0.1, 0.1);
+            glutStrokeString(
+                    GLUT_STROKE_MONO_ROMAN, 
+                    sprintf "%.3f", ($month{$m}->{delta}*$y/300.0 + $MIN)/100.0 
+                );
+            glPopMatrix();
+        }
+
+        #作图
+        $MIN = $month{$m}->{min};
+        $MAX = $month{$m}->{max};
+        $PLY = $month{$m}->{ply};
+        $DELTA = $month{$m}->{delta};
+
+        my $bright = 1.0;
+        my $color;
+        my @points = ();
+        for my $tdi ( reverse $di .. $di+10 )
+        {
+            next if ( $tdi < 0 or $tdi > $#days );
+            $day = $days[$tdi];
+            #时间清零，避免受到上一次影响
+            @times = ();
+            #时间排序
+            @times = sort keys %{ $hash->{$day} };
+
+            my $t1, $x1, $y1, $last_x;
+            $bright = $tdi == $di ? 2.0 : 0.9*(1.0-($tdi-$di)/10.0);
+            glBegin(GL_LINE_STRIP);
+            for my $ti ( 0 .. $#times )
+            {
+                $t1 = $times[$ti];
+                $t1 =~ /^0?(\d+):0?(\d+)/;
+                $x1 = ($1 * 60.0 + $2)/3.0;
+                $y1 = ($hash->{$day}{$t1}[col]-$MIN)*$PLY;
+
+                $color = $color_idx[int($y1)];
+                glColor4f( $color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0 );
+                glVertex3f($x1, $y1, -($tdi-$di)*30.0 );
+                push @points, [ $x1, -($tdi-$di)*30.0, $y1 ];  #z, y switch
+            }
+            glEnd();
+        }
+
+        glEnable(GL_LIGHTING);
+        glColor4f(1.0, 1.0, 1.0, 1.0);
+        my $tri;
+        my @tpa, @tpb, @norm;
+        $tri = triangulation( \@points );
+        glBegin(GL_TRIANGLES);
+        for my $a ( @$tri ) 
+        {
+            for my $i ( 0 .. 2 )
+            {
+                $tpa[$i] = $a->[1][$i] - $a->[0][$i] ;
+                $tpb[$i] = $a->[2][$i] - $a->[0][$i] ;
+            }
+            normcrossprod( \@tpa, \@tpb, \@norm );
+            glNormal3f( @norm );
+            for my $b ( @$a ) 
+            {
+                $bright = 1.0 - abs($b->[1])/400.0;
+                $color = $color_idx[int($b->[2])];
+                glColor4f( $color->{R} * $bright, $color->{G} * $bright, $color->{B} * $bright, 0.5 );
+                glVertex3f( @$b[0,2,1] );
+            }
+        }
+        glEnd();
+        glDisable(GL_LIGHTING);
+
+
+        glEndList ();
+    }
+    printf "Done. Time used: %.3f\n", time()-$ta;
+
+    $text_mins = $#days + 1 + 1;
+    #横轴
+    glNewList ( $text_mins, GL_COMPILE );
     glColor3f(1.0, 1.0, 1.0);
     for ( my $mins = 0.0; $mins <= 1440.0; $mins+=40.0 )
     {
@@ -394,7 +413,8 @@ sub init
         glPopMatrix();
     }
     glEndList();
-    $n++;
+
+
 }
 
 sub reshape 
@@ -496,7 +516,7 @@ DRAW_STRING:
         my $s = shift;
         for my $c ( split //, $s )
         {
-            glCallList( $TEXTID{$c} );
+            draw_character($c);
             glTranslatef($TEXT{$c}->{right}, 0.0, 0.0);
         }
     }

@@ -39,7 +39,6 @@ BEGIN
     our $begin = int($#days/2);                  #展示数据的起始索引
     our $col = 2;
 
-    our $text_mins;
     our %month;
     our %daily;
     our ($MIN, $MAX) = (1000.0, 0.0);
