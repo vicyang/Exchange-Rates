@@ -125,14 +125,14 @@ INIT
         push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
     }
 
-    fill_color( 20, 60, 1.0, 0.3, 0.3);
-    fill_color(100,100, 1.0, 0.6, 0.0);
-    fill_color(200,100, 0.2, 0.8, 0.2);
-    fill_color(300,300, 0.2, 0.6, 1.0);
+    # fill_color( 20, 60, 1.0, 0.3, 0.3);
+    # fill_color(100,100, 1.0, 0.6, 0.0);
+    # fill_color(200,100, 0.2, 0.8, 0.2);
+    # fill_color(300,300, 0.2, 0.6, 1.0);
 
-    # fill_color( 20,200, 1.0, 0.6, 0.2);
-    # fill_color(150,200, 0.3, 1.0, 0.3);
-    # fill_color(280,300, 0.2, 0.5, 1.0);
+    fill_color( 20,200, 1.0, 0.6, 0.2);
+    fill_color(150,200, 0.3, 1.0, 0.3);
+    fill_color(280,300, 0.2, 0.5, 1.0);
 
     print "Initial vertex pointers ... ";
     my $ta = time();
