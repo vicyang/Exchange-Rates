@@ -7,7 +7,10 @@
   /Data 汇率数据，相关脚本  
   /Visualization 可视化程序  
 
-* 效果  
+* display_control.pl  
+  ![](./Visualization/snap02.png)  
+
+* display_triangulation.pl  
   ![](./Visualization/snap01.png)  
 
 * BUG  
