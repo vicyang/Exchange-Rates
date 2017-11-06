@@ -8,7 +8,7 @@
   /Visualization 可视化程序  
 
 * 效果  
-  ![](../Visualization/snap01.png)  
+  ![](./Visualization/snap01.png)  
   
   ![](http://imgout.ph.126.net/58325097/new02.jpg)  
 
