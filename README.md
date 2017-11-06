@@ -9,8 +9,6 @@
 
 * 效果  
   ![](./Visualization/snap01.png)  
-  
-  ![](http://imgout.ph.126.net/58325097/new02.jpg)  
 
 * BUG  
   2007年8月15日出现最小值为0.076的情况，原因：  
