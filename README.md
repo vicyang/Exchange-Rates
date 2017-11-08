@@ -13,8 +13,8 @@
   ![](./Visualization/snap02.png)  
 
 * display_triangulation.pl  
-  从 ../Data 目录获取数据，3D图  
-  
+  从 ../Data 目录获取数据，立体图  
+
   ![](./Visualization/snap01.png)  
 
 * display_nearly.pl  
