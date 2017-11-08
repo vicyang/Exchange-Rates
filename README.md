@@ -1,22 +1,24 @@
 ### 获取外汇牌价历史记录  
 
 * ### Branch Visualization  
-  基于threads1.0  
+  基于 tag threads1.0  
 
 * 目录结构  
   /Data 获取汇率数据，相关脚本  
   /Visualization 可视化程序  
 
 * display_control.pl  
-  从 ../Data 目录获取数据并展示，线条图  
-  指定数据文件：`our $DB_File = "../Data/2017.perldb.bin";`  
+  从 ../Data 目录获取数据，线条图  
+
   ![](./Visualization/snap02.png)  
 
 * display_triangulation.pl  
+  从 ../Data 目录获取数据，3D图  
+  
   ![](./Visualization/snap01.png)  
 
 * display_nearly.pl  
-  展示最近N天的汇率曲线图，在线获取最新的数据。  
+  展示最近N天的汇率曲线图，在线获取数据。  
   日期设置：`our $from = DateTime->today()->add( days => -5 );`  
 
 * BUG  
