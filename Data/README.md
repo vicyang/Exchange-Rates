@@ -1,17 +1,16 @@
-* 2017-10-23  
-  问题：storable 存储 thread::shared 标记的哈希引用，无法得到完整内容  
-  临时的方案是 先用 Data::Dumper 转结构体字符串，通过 eval 获得哈希树的副本。  
-  然后 store  
+### 获取外汇牌价
 
-  其他参考  
-  https://stackoverflow.com/questions/17701276/perl-using-storable-and-threadqueue-correctly  
-  [Unable to store shared hash with Storable](http://www.perlmonks.org/?node_id=919696)  
+* GetExchangeData.pl  
+  在线获取数据并采用Perl哈希结构保存。  
+  调用示例：  
+  > GetExchangeData.pl 2016-01-01 2017-01-01 2016.perldb  
 
-  > Not much help, but I know from experimenting with shared hashes,  
-  > the share method only shares the first level keys.
+* GetExchangeData_bin.pl
+  在线获取数据，通过 Storable 模块保存，提高存取效率。  
+  调用格式同上  
 
-  其他考虑：  
-  1. Clone 模块 recursively copy Perl datatypes  
-  2. Storable's "dclone()" is a flexible solution for cloning variables  
+* UpdateDB_ThisYear_bin.pl  
+  更新本年的数据，截至日期为昨天。  
+  比如 2017年11月08日，则数据范围为： 2017年01月01日 - 2017年11月07日。  
+  保存的文件为 2017.perldb.bin  
 
-  实测 clone 和 dclone 没有起到作用  
