@@ -5,7 +5,7 @@
   调用示例：  
   > GetExchangeData.pl 2016-01-01 2017-01-01 2016.perldb  
 
-* GetExchangeData_bin.pl
+* GetExchangeData_bin.pl  
   功能同上，使用 Storable 模块保存数据。  
 
 * UpdateDB_ThisYear_bin.pl  
