@@ -7,7 +7,7 @@
 * 2017-10-23 tags Charts_v0.9  
   添加立体图展示：display_triangulation.pl
 
-* 相关
-  三角剖分模块
-  https://metacpan.org/pod/Math::Geometry::Delaunay
-  http://www.cs.cmu.edu/~quake/triangle.html
+* 相关  
+  三角剖分模块  
+  https://metacpan.org/pod/Math::Geometry::Delaunay  
+  http://www.cs.cmu.edu/~quake/triangle.html  
