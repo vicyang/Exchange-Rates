@@ -18,7 +18,7 @@
   ![](./Visualization/snap01.png)  
 
 * display_nearly.pl  
-  展示最近N天的汇率曲线图，在线获取数据。  
+  展示最近N天的汇率曲线，在线获取数据，不依赖于本地数据。  
   日期设置：`our $from = DateTime->today()->add( days => -5 );`  
 
 * BUG  
