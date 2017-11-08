@@ -19,7 +19,8 @@
 
 * display_nearly.pl  
   展示最近N天的汇率曲线，在线获取数据，不依赖于本地数据。  
-  日期设置：`our $from = DateTime->today()->add( days => -5 );`  
+  日期设置：
+  `our $from = DateTime->today()->add( days => -5 );`  
 
 * BUG  
   2007年8月15日出现最小值为0.076的情况，原因：  
