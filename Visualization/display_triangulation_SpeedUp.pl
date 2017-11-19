@@ -4,6 +4,7 @@
     Date: 2017-10
     https://github.com/vicyang/Exchange-Rates
 =cut
+
 use Try::Tiny;
 use utf8;
 use Encode;
