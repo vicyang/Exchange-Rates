@@ -33,7 +33,7 @@ BEGIN
     our ($rx, $ry, $rz, $zoom) = (0.0, 0.0, 0.0, 1.0);
     our ($mx, $my, $mz) = (0.0, 0.0, 0.0);
 
-    our $DB_File = "../Data/2015.perldb.bin";
+    our $DB_File = "../Data/2017.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
     #@days = @days[0..100];
