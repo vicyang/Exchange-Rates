@@ -9,7 +9,6 @@ use utf8;
 use autodie;
 use Storable;
 use Encode;
-use Font::FreeType;
 use Time::HiRes qw/sleep/;
 use Data::Dumper;
 use List::Util qw/sum min max/;
@@ -21,6 +20,9 @@ use feature 'state';
 
 BEGIN
 {
+	use FindBin;
+	use lib $FindBin::Bin ."/lib";
+	use Font::FreeType;
     use DateTime;
     use IO::Handle;
     STDOUT->autoflush(1);

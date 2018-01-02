@@ -1,0 +1,7 @@
+foobar\lib\perl5\MSWin32-x86-multi-thread-64int\Font\FreeType.pm
+foobar\lib\perl5\MSWin32-x86-multi-thread-64int\Font\FreeType\BoundingBox.pm
+foobar\lib\perl5\MSWin32-x86-multi-thread-64int\Font\FreeType\CharMap.pm
+foobar\lib\perl5\MSWin32-x86-multi-thread-64int\Font\FreeType\Face.pm
+foobar\lib\perl5\MSWin32-x86-multi-thread-64int\Font\FreeType\Glyph.pm
+foobar\lib\perl5\MSWin32-x86-multi-thread-64int\Font\FreeType\NamedInfo.pm
+foobar\lib\perl5\MSWin32-x86-multi-thread-64int\auto\Font\FreeType\FreeType.xs.dll

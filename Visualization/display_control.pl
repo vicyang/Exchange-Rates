@@ -9,7 +9,6 @@ use utf8;
 use autodie;
 use Storable;
 use Encode;
-use Font::FreeType;
 use Time::HiRes qw/sleep/;
 use Time::Local;
 use File::Slurp;
@@ -25,6 +24,10 @@ STDOUT->autoflush(1);
 
 BEGIN
 {
+	use FindBin;
+	use lib $FindBin::Bin ."/lib";
+	use Font::FreeType;
+
     our $WinID;
     our $HEIGHT = 500;
     our $WIDTH  = 700;

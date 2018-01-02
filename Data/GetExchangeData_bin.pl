@@ -15,10 +15,15 @@ use Time::Local;
 use Data::Dumper;
 use File::Slurp;
 use LWP::UserAgent;
-use HTML::TableExtract;
-
 use IO::Handle;
 STDOUT->autoflush(1);
+
+BEGIN
+{
+	use FindBin;
+	use lib $FindBin::Bin . "/lib";
+	use HTML::TableExtract;
+}
 
 our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
 our $ua = LWP::UserAgent->new( 
@@ -29,7 +34,7 @@ our $hash :shared;
 our @task :shared;
 $hash = shared_clone( {} );
 
-if ( check_arguments() == 0 ) { printf "Wrong format\n"; exit; }
+if ( check_arguments() == 0 ) { printf "Wrong format\n"; paktc(); }
 my ($from, $to, $file) = @ARGV;
 my $time_a = Time::HiRes::time();
 my $pageid = 1;
@@ -137,7 +142,7 @@ sub time_to_date
 
 sub check_arguments
 {
-    if ( $#ARGV < 2 ) { printf "Too few arguments\n"; exit; }
+    if ( $#ARGV < 2 ) { printf "Too few arguments\n"; paktc(); }
     my ( $from, $to, $file) = @ARGV;
     my $today = time_to_date( time() );
     my $res = 1;
@@ -154,4 +159,11 @@ sub check_arguments
 
     $res = 0 if ( $from gt $to );
     return $res;
+}
+
+sub paktc
+{
+	printf "Usage(example): GetExchangeData_bin.pl 2016-01-01 2016-12-31 2016.db\n";
+	system("pause");
+	exit;
 }

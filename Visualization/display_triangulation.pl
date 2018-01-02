@@ -10,24 +10,24 @@ use Encode;
 use autodie;
 use Storable;
 use feature 'state';
-use Font::FreeType;
 use Time::HiRes qw/sleep time/;
 use Time::Local;
 use File::Slurp;
 use Data::Dumper;
 use List::Util qw/sum min max/;
 
-use IO::Handle;
 use OpenGL qw/ :all /;
 use OpenGL::Config;
-use Math::Geometry::Delaunay;
-
-STDOUT->autoflush(1);
 
 BEGIN
 {
+    use FindBin;
+    use lib $FindBin::Bin ."/lib";
+    use Font::FreeType;
+    use Math::Geometry::Delaunay;
     use IO::Handle;
     STDOUT->autoflush(1);
+
     our $WinID;
     our $HEIGHT = 500;
     our $WIDTH  = 700;

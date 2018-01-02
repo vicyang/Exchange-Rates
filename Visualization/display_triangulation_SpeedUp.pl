@@ -11,7 +11,6 @@ use Encode;
 use autodie;
 use Storable;
 use feature 'state';
-use Font::FreeType;
 use Time::HiRes qw/sleep time usleep/;
 use Time::Local;
 use File::Slurp;
@@ -20,10 +19,13 @@ use List::Util qw/sum min max/;
 
 use OpenGL qw/ :all /;
 use OpenGL::Config;
-use Math::Geometry::Delaunay;
 
 BEGIN
 {
+    use FindBin;
+    use lib $FindBin::Bin ."/lib";
+    use Font::FreeType;
+    use Math::Geometry::Delaunay;
     use IO::Handle;
     STDOUT->autoflush(1);
 

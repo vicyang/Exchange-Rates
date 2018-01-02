@@ -1,0 +1,22 @@
+=head2 Tue Jan  2 10:54:25 2018: C<Module> L<HTML-TableExtract|HTML-TableExtract>
+
+=over 4
+
+=item *
+
+C<installed into: ./foo\lib\perl5>
+
+=item *
+
+C<LINKTYPE: dynamic>
+
+=item *
+
+C<VERSION: 2.15>
+
+=item *
+
+C<EXE_FILES: >
+
+=back
+
