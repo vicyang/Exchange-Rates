@@ -8,11 +8,11 @@
     HTML::TableExtract  
     Math::Geometry::Delaunay  
 
-* 分支  
-  * ### Branch Visualization  
+* ### 分支  
+  * Branch Visualization  
     基于 tag threads1.0  
 
-* 目录结构  
+* ### 目录结构  
   /Data          抓取汇率数据的脚本  
   /Visualization 可视化程序  
 
