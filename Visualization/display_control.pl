@@ -37,7 +37,7 @@ BEGIN
     our $DB_File = "../Data/2017.perldb.bin";
     our $hash = retrieve( $DB_File );
     our @days = (sort keys %$hash);
-    our $begin = 0;                  #展示数据的起始索引
+    our $begin = int($#days/2);                  #展示数据的起始索引
     sub col { 2 };
 
     our %month;
