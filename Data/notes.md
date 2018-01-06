@@ -15,3 +15,13 @@
   2. Storable's "dclone()" is a flexible solution for cloning variables  
 
   实测 clone 和 dclone 没有起到作用  
+
+* 2018-01-06 
+  use warnings "all";
+  出现大量 “使用未定义变量” 的提示
+  原因是 HTML表的最后一行为空行：
+  ["\xA0", undef, undef, undef, undef, undef, undef, undef]
+  
+  不匹配的正则符号为：!~ 而非 !=~
+  ` !=~ should be !~ `
+
