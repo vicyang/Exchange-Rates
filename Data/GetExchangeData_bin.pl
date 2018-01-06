@@ -5,6 +5,7 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
+use warnings "all";
 use Encode;
 use Storable qw/store/;
 use threads;
@@ -100,9 +101,9 @@ sub get_exchange_data
 
     for my $ele ( $table->rows )
     {
-        shift @$ele;                       '去掉第一行抬头';
-        next if ( $ele->[1] eq '' );       '去掉第一列货币类型';
-        next if ( not $ele->[1] =~/\d/ );  '表格最后一行为空';
+        shift @$ele;                       #去掉第一行抬头;
+        next if ( $ele->[1] eq '' );       #去掉第一列货币类型;
+        next if ( not $ele->[1] =~/\d/ );  #表格最后一行为空;
 
         $timestamp = pop @$ele;
         $timestamp =~/^(.{10}) (.{8})/;
