@@ -5,6 +5,7 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
+use warnings 'all';
 use utf8;
 use autodie;
 use Storable;
@@ -147,11 +148,11 @@ sub display
 {
     state @times;
     state $i = 0;
-    state ($min, $max, $delta, $ply);
+    state $ply;
 
     our ($hash, @days, $begin, $MIN, @color_idx);
     my $day;
-    my $hour, $time, $last;
+    my ($hour, $time, $last);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     glColor4f(0.8, 0.8, 0.8, 0.5);
@@ -183,7 +184,7 @@ sub display
         @times = sort keys %{ $hash->{$day} };
         @rates = map { $hash->{$day}{$_}[col] } @times;
 
-        my $t1, $x1, $y1, $last_x;
+        my ($t1, $x1, $y1, $last_x);
         $bright = $di == $begin ? 1.1 : 0.8*(1.0-($di-$begin)/12.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
@@ -232,7 +233,7 @@ sub display
     }
 
     #当天的数据特征
-    my $min = 1000.0, $max = 0.0;
+    my ($min, $max) = (1000.0, 0.0);
     for my $t ( keys %{$hash->{$days[$begin]}} )
     {
         if ($hash->{$days[$begin]}{$t}[col] < $min) { $min = $hash->{$days[$begin]}{$t}[col] }
@@ -244,7 +245,7 @@ sub display
     glPushMatrix();
     glTranslatef(-80.0, 320.0, 0.0);
     draw_string(
-        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
+        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f", 
             $yy, $mm, $dd, $max/100.0, $min/100.0, $delta/100.0)
     );
     glPopMatrix();
@@ -425,7 +426,7 @@ DRAW_STRING:
         our $glyph;
         my $char = shift;
         #previous x, y
-        my $px, $py, $parts, $step;
+        my ($px, $py, $parts, $step);
         my @contour = ();
         my $ncts    = -1;
         

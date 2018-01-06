@@ -5,6 +5,7 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
+use warnings 'all';
 use utf8;
 use Encode;
 use autodie;
@@ -45,6 +46,8 @@ BEGIN
     our ($MIN, $MAX) = (1000.0, 0.0);
     my $m;     #month
     my $last;  #last key(time) in one day
+    my $this;
+
     for my $d (@days)
     {
         $this = $hash->{$d};
@@ -74,6 +77,13 @@ BEGIN
         $month{$m}->{delta} = $month{$m}->{max} - $month{$m}->{min};
         $month{$m}->{ply}   = 300.0 / $month{$m}->{delta} 
             if ($month{$m}->{delta} != 0);
+    }
+
+    for $d ( keys %daily )
+    {
+        $daily{$d}->{delta} = $daily{$d}->{max} - $daily{$d}->{min};
+        $daily{$d}->{ply}   = 300.0 / $daily{$d}->{delta} 
+            if ($daily{$d}->{delta} != 0);
     }
 
     $DELTA = $MAX - $MIN;
@@ -176,7 +186,7 @@ sub display
 
     our ($hash, @days, $begin, $MIN, @color_idx);
     my $day;
-    my $hour, $time, $last;
+    my ($hour, $time);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     glColor4f(0.8, 0.8, 0.8, 0.5);
@@ -209,7 +219,7 @@ sub display
         @times = sort keys %{ $hash->{$day} };
         @rates = map { $hash->{$day}{$_}[$col] } @times;
 
-        my $t1, $x1, $y1, $last_x;
+        my ($t1, $x1, $y1, $last_x);
         $bright = $di == $begin ? 2.0 : 0.9*(1.0-($di-$begin)/10.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
@@ -230,7 +240,7 @@ sub display
     glEnable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
     my $tri;
-    my @tpa, @tpb, @norm;
+    my (@tpa, @tpb, @norm);
     $tri = triangulation( \@points );
     glBegin(GL_TRIANGLES);
     for my $a ( @$tri ) 
@@ -253,7 +263,7 @@ sub display
     glEnd();
     glDisable(GL_LIGHTING);
 
-    ' 汇率, Y轴, 按月份更新，$key = yyyy.mm ';
+    #汇率, Y轴, 按月份更新，$key = yyyy.mm;
     for ( my $y = 0.0; $y<=300.0; $y+=15.0 )
     {
         glColor4f( @{$color_idx[int($y)]}{'R','G','B'}, 1.0 );
@@ -265,16 +275,16 @@ sub display
         glPopMatrix();
     }
 
-    ' 时间轴 ';
+    #时间轴;
     glCallList($CLOCK);
 
-    ' 标题 ';
+    #标题;
     ($yy, $mm, $dd) = split(/\D/, $days[$begin] );
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glPushMatrix();
     glTranslatef(-80.0, 320.0, 0.0);
     draw_string(
-        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
+        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f", 
             $yy, $mm, $dd, 
             $daily{$days[$begin]}->{max}/100.0, 
             $daily{$days[$begin]}->{min}/100.0, 
@@ -366,7 +376,7 @@ sub init
     my $ta = time();
     printf "Creating display list ... ";
 
-    ' 字 ';
+    #字;
     my $n = 1;
     our %TEXTID;
     our $CLOCK;
@@ -379,7 +389,7 @@ sub init
         $n++;
     }
 
-    ' 横轴 ';
+    #横轴;
     $CLOCK = $n;
     glNewList ( $n, GL_COMPILE );
     glColor3f(1.0, 1.0, 1.0);
@@ -526,7 +536,7 @@ DRAW_STRING:
         our $glyph;
         my $char = shift;
         #previous x, y
-        my $px, $py, $parts, $step;
+        my ($px, $py, $parts, $step);
         my @contour = ();
         my $ncts    = -1;
         

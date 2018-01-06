@@ -16,7 +16,6 @@ use Time::Local;
 use File::Slurp;
 use LWP::UserAgent;
 use HTML::TableExtract;
-
 use IO::Handle;
 STDOUT->autoflush(1);
 
@@ -31,6 +30,7 @@ $hash = shared_clone( {} );
 
 sub main
 {
+    our @task;
     my ($from, $to, $hashref) = @_;
     if ( check_arguments( @_ ) == 0 ) 
     { 
@@ -40,6 +40,7 @@ sub main
     my $time_a = Time::HiRes::time();
     my $pageid = 1;
     my @ths;
+    @task = (0) x 6;
     grep { push @ths, threads->create( \&func, $from, $to, $_ ) } ( 0 .. 5 );
 
     #循环插入任务，等待线程结束
@@ -56,6 +57,7 @@ sub main
 
 sub func
 {
+    our @task;
     my ($from, $to, $idx) = @_;
     my $content;
     my $timestamp;
@@ -98,9 +100,9 @@ sub get_exchange_data
 
     for my $ele ( $table->rows )
     {
-        shift @$ele;                       '去掉第一行抬头';
-        next if ( $ele->[1] eq '' );       '去掉第一列货币类型';
-        next if ( not $ele->[1] =~/\d/ );  '表格最后一行为空';
+        shift @$ele;                        #去掉第一行抬头
+        next if ( not defined $ele->[1] );  #表格最后一行为空 ["\xA0", undef, undef, ...
+        next if ( $ele->[1] !~ /\d/ );      #略过标题行
 
         $timestamp = pop @$ele;
         $timestamp =~/^(.{10}) (.{8})/;
