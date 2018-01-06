@@ -5,6 +5,7 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
+use warnings "all";
 use Encode;
 use threads;
 use threads::shared;
@@ -15,11 +16,15 @@ use Storable;
 use Data::Dumper;
 use List::Util qw/sum/;
 use LWP::UserAgent;
-use HTML::TableExtract;
-
 use IO::Handle;
 STDOUT->autoflush(1);
-$Data::Dumper::Indent = 0;
+
+BEGIN
+{
+    use FindBin;
+    use lib $FindBin::Bin . "/lib";
+    use HTML::TableExtract;
+}
 
 our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
 our $ua = LWP::UserAgent->new( 
@@ -45,9 +50,10 @@ if ( -e $file )
     $hash = shared_clone($struct);
     print "Done\n";
 }
-else { $hash = shared_clone( {} ) }; '初始化';
+else { $hash = shared_clone( {} ) }; #初始化;
 
 my @ths;
+@task = (0)x6;
 grep { push @ths, threads->create( \&func, $_ ) } ( 0 .. 5 );
 
 my $time_a = Time::HiRes::time();
@@ -130,9 +136,9 @@ sub get_exchange_data
 
     for my $ele ( $table->rows )
     {
-        shift @$ele;                       '去掉第一行抬头';
-        next if ( $ele->[1] eq '' );       '去掉第一列货币类型';
-        next if ( not $ele->[1] =~/\d/ );  '表格最后一行为空';
+        shift @$ele;                        #去掉第一行抬头
+        next if ( not defined $ele->[1] );  #表格最后一行为空 ["\xA0", undef, undef, ...
+        next if ( $ele->[1] !~ /\d/ );      #略过标题行
 
         $timestamp = pop @$ele;
         $timestamp =~/^(.{10}) (.{8})/;
