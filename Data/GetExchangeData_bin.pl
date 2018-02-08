@@ -5,6 +5,7 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
+use warnings "all";
 use Encode;
 use Storable qw/store/;
 use threads;
@@ -34,11 +35,13 @@ our $hash :shared;
 our @task :shared;
 $hash = shared_clone( {} );
 
-if ( check_arguments() == 0 ) { printf "Wrong format\n"; paktc(); }
+while ( check_input( @ARGV ) == 0 ) { @ARGV = ask() }
 my ($from, $to, $file) = @ARGV;
+
 my $time_a = Time::HiRes::time();
 my $pageid = 1;
 my @ths;
+@task = (0)x6;
 grep { push @ths, threads->create( \&func, $from, $to, $_ ) } ( 0 .. 5 );
 
 #循环插入任务，等待线程结束
@@ -95,14 +98,13 @@ sub get_exchange_data
     #count => 1 表示选择第二个表格
     $obj = HTML::TableExtract->new( depth => 0, count => 1 );
     $obj->parse($html_str);
-
     grep { $table = $_ } $obj->tables;
 
     for my $ele ( $table->rows )
     {
-        shift @$ele;                       '去掉第一行抬头';
-        next if ( $ele->[1] eq '' );       '去掉第一列货币类型';
-        next if ( not $ele->[1] =~/\d/ );  '表格最后一行为空';
+        shift @$ele;                        #去掉第一行抬头
+        next if ( not defined $ele->[1] );  #表格最后一行为空 ["\xA0", undef, undef, ...
+        next if ( $ele->[1] !~ /\d/ );      #略过标题行
 
         $timestamp = pop @$ele;
         $timestamp =~/^(.{10}) (.{8})/;
@@ -140,30 +142,48 @@ sub time_to_date
     return sprintf "%d-%02d-%02d", $year,$mon,$day;
 }
 
-sub check_arguments
+sub check_input
 {
-    if ( $#ARGV < 2 ) { printf "Too few arguments\n"; paktc(); }
-    my ( $from, $to, $file) = @ARGV;
+    if ( $#_ < 2 ) {
+        printf "Missing parameters\n";
+        return 0;
+    }
+
+    my ( $from, $to, $file) = @_;
     my $today = time_to_date( time() );
     my $res = 1;
+
     for my $dt ( $from, $to )
     {
-        if ( $dt =~/(\d{4})-(\d{2})-(\d{2})/ ) 
+        if ( $dt =~/(\d{4})-(\d{2})-(\d{2})/ )
         {
             $res = 0 if ( $dt gt $today );
             $res = 0 if ( $1 lt 2007 );
             try   { timelocal(0,0,0, $3, $2-1, $1-1900) } 
             catch { $res = 0 };
         }
+        else
+        {
+            $res = 0;
+        }
     }
 
     $res = 0 if ( $from gt $to );
+    if ($res == 0) { printf "wrong format\n" }
+
     return $res;
 }
 
-sub paktc
+sub ask
 {
+    my @args;
 	printf "Usage(example): GetExchangeData_bin.pl 2016-01-01 2016-12-31 2016.db\n";
-	system("pause");
-	exit;
+	printf "From:";
+    push @args, scalar(<STDIN>);
+    printf "To:";
+    push @args, scalar(<STDIN>);
+    printf "File name:";
+    push @args, scalar(<STDIN>);
+    grep { s/\r?\n$// } @args;
+    return @args;
 }

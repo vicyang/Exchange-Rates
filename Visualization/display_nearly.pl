@@ -5,6 +5,7 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
+use warnings 'all';
 use utf8;
 use autodie;
 use Storable;
@@ -12,7 +13,6 @@ use Encode;
 use Time::HiRes qw/sleep/;
 use Data::Dumper;
 use List::Util qw/sum min max/;
-use ExchangeRates;
 
 use OpenGL qw/ :all /;
 use OpenGL::Config;
@@ -22,6 +22,7 @@ BEGIN
 {
 	use FindBin;
 	use lib $FindBin::Bin ."/lib";
+    use ExchangeRates;
 	use Font::FreeType;
     use DateTime;
     use IO::Handle;
@@ -70,7 +71,7 @@ BEGIN
     #@days = @days[10..$#days];
 
     our ($MIN, $MAX) = (1000.0, 0.0);
-    our $PLY, $DELTA;
+    our ($PLY, $DELTA);
     
     for my $d (@days)
     {
@@ -169,11 +170,10 @@ sub display
 {
     state @times;
     state $i = 0;
-    state ($min, $max, $delta, $ply);
 
     our ($hash, @days, $begin, $MIN, @color_idx);
     my $day;
-    my $hour, $time, $last;
+    my ($hour, $time, $last);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     glColor4f(0.8, 0.8, 0.8, 0.5);
@@ -198,7 +198,7 @@ sub display
         @rates = map { $hash->{$day}{$_}[3] } @times;
 
         #glColor4f(1.0, 0.5, $di/$#days, 0.8 );
-        my $t1, $x1, $y1, $last_x, $last_y;
+        my ($t1, $x1, $y1, $last_x, $last_y);
         $bright = $di == $begin ? 1.2 : 0.6*(1.0-abs($di-$begin)/10.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
@@ -258,7 +258,7 @@ sub display
     }
 
     #当天的数据特征
-    my $min = 1000.0, $max = 0.0;
+    my ($min, $max) = (1000.0, 0.0);
     for my $t ( keys %{$hash->{$days[$begin]}} )
     {
         if ($hash->{$days[$begin]}{$t}[col] < $min) { $min = $hash->{$days[$begin]}{$t}[col] }
@@ -270,7 +270,7 @@ sub display
     glPushMatrix();
     glTranslatef(-80.0, 320.0, 0.0);
     draw_string(
-        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
+        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f", 
             $yy, $mm, $dd, $max/100.0, $min/100.0, $delta/100.0)
     );
     glPopMatrix();
@@ -412,7 +412,14 @@ DRAW_STRING:
         for my $c ( split //, $s )
         {
             draw_character($c);
-            glTranslatef($TEXT{$c}->{right}, 0.0, 0.0);
+            if ( defined $TEXT{$c}->{right} )
+            {
+                glTranslatef( $TEXT{$c}->{right}, 0.0, 0.0 );
+            }
+            else
+            {
+                printf "Wrong character %x\n", ord($c);
+            }
         }
     }
 
@@ -441,7 +448,7 @@ DRAW_STRING:
         our $glyph;
         my $char = shift;
         #previous x, y
-        my $px, $py, $parts, $step;
+        my ($px, $py, $parts, $step);
         my @contour = ();
         my $ncts    = -1;
         

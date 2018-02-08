@@ -5,6 +5,7 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
+use warnings 'all';
 use Try::Tiny;
 use utf8;
 use Encode;
@@ -48,6 +49,7 @@ BEGIN
     my $m;     #month
     my $d;     #day
     my $last;  #last key(time) in one day
+    my $this;
     for my $d (@days)
     {
         $this = $hash->{$d};
@@ -92,7 +94,7 @@ BEGIN
     $PLY = 300.0/$DELTA;
 
     printf("Done.\n");
-    printf("min: %.3f, max: %.3f\n", $MIN, $MAX );
+    printf("min: %.3f, max: %.3f, delta: %.3f\n", $MIN, $MAX, $DELTA );
 
     our $tobj;
     our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 16);
@@ -122,7 +124,7 @@ INIT
     print "Done\n";
 
     #创建颜色插值表
-    our $table_size = 320;
+    our $table_size = 500;
     our @color_idx;
     for (0 .. $table_size) {
         push @color_idx, { 'R' => 0.0, 'G' => 0.0, 'B' => 0.0 };
@@ -135,18 +137,25 @@ INIT
 
     fill_color( 20,200, 1.0, 0.6, 0.2);
     fill_color(150,200, 0.3, 1.0, 0.3);
-    fill_color(280,300, 0.2, 0.5, 1.0);
+    fill_color(280,320, 0.2, 0.5, 1.0);
 
     print "Initial vertex pointers ... ";
     my $ta = time();
-    my $di, $bright, $color, $tdi, $ti;
+    my ($di, $bright, $color, $tdi, $ti);
 
     our $allvtx;
     our $allclr;
-    our $allpts;  '// Points for triangulation //';
+    our $allpts;  #Points for triangulation;
+
+    $MIN = $month{'2017.02'}->{min};
+    $MAX = $month{'2017.02'}->{max};
+    $PLY = $month{'2017.02'}->{ply};
+    $DELTA = $month{'2017.02'}->{delta};
+    printf "min %.3f, max %.3f ply %.3f, delta %.3f\n", $MIN, $MAX, $PLY, $DELTA;
+
     for $di ( 0 .. $#days )
     {
-        ' 该月的数据 ';
+        #该月的数据;
         $m = substr($days[$di], 0, 7);
         $MIN = $month{$m}->{min};
         $MAX = $month{$m}->{max};
@@ -154,7 +163,6 @@ INIT
         $DELTA = $month{$m}->{delta};
 
         $bright = 1.0;
-        $color;
         for $tdi ( reverse $di .. $di+10 )
         {
             next if ( $tdi < 0 or $tdi > $#days );
@@ -164,7 +172,7 @@ INIT
             #时间排序
             @times = sort keys %{ $hash->{$day} };
 
-            my $t, $x, $y, $z;
+            my ($t, $x, $y, $z);
             $bright = $tdi == $di ? 2.0 : 0.9*(1.0-($tdi-$di)/10.0);
             for $ti ( 0 .. $#times )
             {
@@ -174,6 +182,15 @@ INIT
                 $y = ($hash->{$day}{$t}[$col]-$MIN)*$PLY;
                 $z = -($tdi-$di)*30.0;
                 $color = $color_idx[int($y)];
+
+                # 由于跨月份，delta可能会超过另一个月的范围
+                # 所以 table_size 的定义范围要足够大，而不是刚好和预算的相同
+                # if (not defined $color->{R} )
+                # {
+                #     printf "$y ply: $PLY, val: %d, $MIN $day $m\n", $hash->{$day}{$t}[$col] ;
+                #     next;
+                # }
+
                 push @{$allvtx->{$di}{$tdi}},  [$x, $y, $z];
                 push @{$allclr->{$di}{$tdi}},  [$color->{R}*$bright, $color->{G}*$bright, $color->{B}*$bright, 1.0];
                 push @{$allpts->{$di}},  [$x, $z, $y];
@@ -242,7 +259,7 @@ sub display
     glRotatef($rz, 0.0, 0.0, 1.0);
     glTranslatef($mx, $my, $mz);
 
-    '// 曲线图，allvtx 和 allclr 的key是一致的 //';
+    #曲线图，allvtx 和 allclr 的key是一致的;
     my $obj;
     for my $k ( keys %{$allvtx->{$begin}} )
     {
@@ -257,8 +274,8 @@ sub display
     }
     
     glEnable(GL_LIGHTING);
-    my $tri, i, a, b;
-    my @tpa, @tpb, @norm;
+    my ($tri, $a, $b);
+    my (@tpa, @tpb, @norm);
     if ( $#{$allpts->{$begin}} >= 2 ) {
         $tri = triangulation( $allpts->{$begin} );
     }
@@ -283,16 +300,16 @@ sub display
     glEnd();
     glDisable(GL_LIGHTING);
 
-    my $day, $mm, $yy, $dd;
+    my ($day, $mm, $yy, $dd);
     $day = $days[$begin];
     ($yy, $mm, $dd) = split(/\D/, $day );
 
-    ' 标题 ';
+    #标题;
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glPushMatrix();
     glTranslatef(-80.0, 320.0, 0.0);
     draw_string(
-        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f\n", 
+        sprintf("%s年%s月%s日 最高:%.3f 最低:%.3f 落差: %.3f", 
             $yy, $mm, $dd, 
             $daily{$day}->{max}/100.0, 
             $daily{$day}->{min}/100.0, 
@@ -301,10 +318,10 @@ sub display
     );
     glPopMatrix();
 
-    ' 时间轴 ';
+    #时间轴;
     glCallList($CLOCK);
 
-    ' 汇率, Y轴, 按月份更新，$key = yyyy.mm ';
+    #汇率, Y轴, 按月份更新，$key = yyyy.mm;
     my $m;
     $m = substr($days[$begin], 0, 7);
     for ( $y = 0.0; $y<=300.0; $y+=15.0 )
@@ -402,7 +419,7 @@ sub init
     my $ta = time();
     printf "Creating display list ... ";
 
-    ' 字 ';
+    #字;
     my $n = 1;
     our %TEXTID;
     our $CLOCK;
@@ -415,7 +432,7 @@ sub init
         $n++;
     }
 
-    ' 横轴 ';
+    #横轴;
     $CLOCK = $n;
     glNewList ( $n, GL_COMPILE );
     glColor3f(1.0, 1.0, 1.0);
@@ -535,7 +552,14 @@ DRAW_STRING:
         for my $c ( split //, $s )
         {
             glCallList( $TEXTID{$c} );
-            glTranslatef($TEXT{$c}->{right}, 0.0, 0.0);
+            if ( defined $TEXT{$c}->{right} )
+            {
+                glTranslatef( $TEXT{$c}->{right}, 0.0, 0.0 );
+            }
+            else
+            {
+                printf "Wrong character 0x%02x\n", ord($c);
+            }
         }
     }
 
@@ -564,7 +588,7 @@ DRAW_STRING:
         our $glyph;
         my $char = shift;
         #previous x, y
-        my $px, $py, $parts, $step;
+        my ($px, $py, $parts, $step);
         my @contour = ();
         my $ncts    = -1;
         

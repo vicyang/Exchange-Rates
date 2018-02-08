@@ -72,3 +72,7 @@
   
   将2008年01月的数据导入 triangulation 函数的时候由于只有一项，引发错误。
 
+* ### 2018-01-06
+  在 ExchangeRates.pm 打开 use warnings 'all'， 提示  
+  Can't locate package GLUquadricObjPtr for @OpenGL::Quad::ISA at ExchangeRates.pm line 46  
+  由于 ExchangeRates 模块之内没有使用到OpenGL相关函数，暂时忽略  
