@@ -199,7 +199,7 @@ sub display
 
         #glColor4f(1.0, 0.5, $di/$#days, 0.8 );
         my ($t1, $x1, $y1, $last_x, $last_y);
-        $bright = $di == $begin ? 1.2 : 0.6*(1.0-abs($di-$begin)/10.0);
+        $bright = $di == $begin ? 1.2 : 0.9*(1.0-abs($di-$begin)/10.0);
         glBegin(GL_LINE_STRIP);
         for my $ti ( 0 .. $#times )
         {
