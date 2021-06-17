@@ -6,6 +6,7 @@
 =cut
 
 package ExchangeRates;
+use utf8;
 use Encode;
 use Data::Dumper;
 use threads;
@@ -19,7 +20,7 @@ use HTML::TableExtract;
 use IO::Handle;
 STDOUT->autoflush(1);
 
-our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
+our $URL = "https://srh.bankofchina.com/search/whpj/search_cn.jsp";
 our $ua = LWP::UserAgent->new( 
             timeout => 5, keep_alive => 1, agent => 'Mozilla/5.0',
           );
@@ -125,7 +126,7 @@ sub get_page
         [
             erectDate => $from,
             nothing   => $to,
-            pjname    => "1316",
+            pjname    => encode('utf8', "美元"),
             page      => $pageid
         ]
     );

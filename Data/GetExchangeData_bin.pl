@@ -5,7 +5,9 @@
     https://github.com/vicyang/Exchange-Rates
 =cut
 
-use warnings "all";
+
+use Modern::Perl;
+use utf8;
 use Encode;
 use Storable qw/store/;
 use threads;
@@ -26,7 +28,7 @@ BEGIN
 	use HTML::TableExtract;
 }
 
-our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
+our $URL = "https://srh.bankofchina.com/search/whpj/search_cn.jsp";
 our $ua = LWP::UserAgent->new( 
             timeout => 5, keep_alive => 1, agent => 'Mozilla/5.0',
           );
@@ -127,7 +129,7 @@ sub get_page
         [
             erectDate => $from,
             nothing   => $to,
-            pjname    => "1316",
+            pjname    => utf8("美元"),  #2021-06 值1316，更新为美元
             page      => $pageid
         ]
     );
@@ -187,3 +189,8 @@ sub ask
     grep { s/\r?\n$// } @args;
     return @args;
 }
+
+sub gbk { encode('gbk', $_[0]) }
+sub utf8 { encode('utf8', $_[0]) }
+sub u2gbk { encode('gbk', decode('utf8', $_[0])) }
+sub uni { decode('utf8', $_[0]) }

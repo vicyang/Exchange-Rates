@@ -18,7 +18,7 @@
   for my $di ( $begin .. $begin+10 ) {
       next if ($di < 0 or $di > $#days);
   ```
-    
+  
   同时在 $begin 加减的时候判断是否越界  
   ```perl
   if ( $k eq '-') { $begin-=1 if $begin > 0 }
@@ -32,7 +32,7 @@
   $left = $delay - $delta;
   sleep $left if $left > 0.0;
   ```
-    
+  
   总时差 渲染耗时 附加时差  
   > 0.0985 0.0001 0.0999  
   > 0.0986 0.0001 0.0999  
@@ -51,7 +51,7 @@
   $DB_File = "../Data/2007.perldb.bin"; 
   $begin = $#days/2;  
   $tri = triangulation( $allpts->{$begin} );
-  ```  
+  ```
   2007-2012 的数据会有这种情况。  
   原因，采用哈希的时候，键值并不会自动转为整数，$#days为奇数的时候，  
   例如 365/2 = 182.5，由于查询不到182.5对应的值，所以提示 undefined value  
@@ -76,3 +76,15 @@
   在 ExchangeRates.pm 打开 use warnings 'all'， 提示  
   Can't locate package GLUquadricObjPtr for @OpenGL::Quad::ISA at ExchangeRates.pm line 46  
   由于 ExchangeRates 模块之内没有使用到OpenGL相关函数，暂时忽略  
+
+* 2020年11月30日
+
+  http 改为 https
+
+  search.jsp 改为 search_cn.jsp
+
+  pjname = "数字" 改为 pjname = encode("utf8", "美元") （LWP模块）
+
+  win10 中 msyh.ttf 改为 msyh.ttc
+
+  

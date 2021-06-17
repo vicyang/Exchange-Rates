@@ -93,7 +93,7 @@ BEGIN
 INIT
 {
     our %TEXT;
-    our ($font, $size) = ("C:/windows/fonts/msyh.ttf", 16);
+    our ($font, $size) = ("C:/windows/fonts/msyh.ttc", 16);
     our $dpi = 100;
     our $face = Font::FreeType->new->face($font);
     $face->set_char_size($size, $size, $dpi, $dpi);

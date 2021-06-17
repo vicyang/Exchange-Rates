@@ -6,6 +6,7 @@
 =cut
 
 use warnings "all";
+use utf8;
 use Encode;
 use threads;
 use threads::shared;
@@ -26,7 +27,7 @@ BEGIN
     use HTML::TableExtract;
 }
 
-our $URL = "http://srh.bankofchina.com/search/whpj/search.jsp";
+our $URL = "https://srh.bankofchina.com/search/whpj/search_cn.jsp";
 our $ua = LWP::UserAgent->new( 
             timeout => 5, keep_alive => 1, agent => 'Mozilla/5.0',
           );
@@ -79,7 +80,7 @@ while ( $date le $to )
     #循环插入任务，当指定日期下的所有页面获取完毕，结束循环
     while ( sum(@task) != -6 )
     {
-        grep { $task[$_] = $pageid++ if ( $task[$_] == 0 ); } (0..5);
+        grep { $task[$_] = $pageid++ if ( $task[$_] == 0 ); } (0 .. 5);
     }
 
     #日期迭代
@@ -155,15 +156,18 @@ sub get_page
     our $ua;
     my ($from, $to, $pageid) = @_;
     my $res;
-    $res = $ua->post( 
+    $res = $ua->post(
         $URL,
         [
             erectDate => $from,
             nothing   => $to,
-            pjname    => "1316",
-            page      => $pageid
+            pjname    => encode('utf8', "美元"),
+            #page      => $pageid,
         ]
     );
+
+    print "$from $to, $pageid";
+    #print gbk( $res->content() );
     return $res->content();
 }
 
@@ -184,3 +188,7 @@ sub time_to_date
     return sprintf "%d-%02d-%02d", $year,$mon,$day;
 }
 
+sub gbk { encode('gbk', $_[0]) }
+sub utf8 { encode('utf8', $_[0]) }
+sub u2gbk { encode('gbk', decode('utf8', $_[0])) }
+sub uni { decode('utf8', $_[0]) }
